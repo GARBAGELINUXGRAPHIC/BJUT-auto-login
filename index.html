@@ -95,6 +95,14 @@
       </div>
       <button id="refresh-btn">Refresh</button>
     </div>
+
+    <div class="status-container">
+      <div class="network-status">
+        <span id="used-traffic-status" class="net-stat">已使用流量: Unknown</span>
+        <span id="total-traffic-status" class="net-stat">套餐总流量: Unknown</span>
+        <span id="traffic-last-updated" class="net-stat" style="font-size: 12px; color: #666;"></span>
+      </div>
+    </div>
     
     <div class="log-area" id="logArea">BJUT-auto-login已启动<br></div>
   </div>
@@ -115,6 +123,9 @@
     const ipv4Status = document.getElementById('ipv4-status');
     const ipv6Status = document.getElementById('ipv6-status');
     const refreshBtn = document.getElementById('refresh-btn');
+    const usedTrafficStatus = document.getElementById('used-traffic-status');
+    const totalTrafficStatus = document.getElementById('total-traffic-status');
+    const trafficLastUpdated = document.getElementById('traffic-last-updated');
 
     // --- State ---
     let isPollingEnabled = true;
@@ -208,6 +219,7 @@
             const result = await ipcRenderer.invoke('network-login', { username, password });
             if (result && result.success) {
                 showStatus('认证成功！', true);
+                updateTrafficInfo(); // Refresh traffic info after successful login
             } else {
                 const message = result ? result.message : 'An unknown error occurred.';
                 showStatus('认证失败: ' + message, false);
@@ -238,9 +250,28 @@
             if (isAutoAuthEnabled && (!connectivity.ipv4Access || !connectivity.ipv6Access)) {
                 addLog('Internet connectivity failed. Triggering authentication attempt.');
                 handleLogin();
+            } else {
+                // If already connected, refresh traffic info
+                updateTrafficInfo();
             }
         } catch (error) {
             addLog(`Network check failed: ${error.message}`);
+        }
+    }
+
+    async function updateTrafficInfo() {
+        addLog('Fetching traffic info...');
+        try {
+            // TODO: Replace with actual backend call
+            const trafficInfo = await new Promise(resolve => setTimeout(() => resolve({ used: '12.3 GB', total: '50 GB' }), 500));
+            
+            usedTrafficStatus.textContent = `已使用流量: ${trafficInfo.used}`;
+            totalTrafficStatus.textContent = `套餐总流量: ${trafficInfo.total}`;
+            trafficLastUpdated.textContent = `(上次更新: ${new Date().toLocaleTimeString()})`
+        } catch (error) {
+            addLog(`Failed to fetch traffic info: ${error.message}`);
+            usedTrafficStatus.textContent = '已使用流量: Error';
+            totalTrafficStatus.textContent = '套餐总流量: Error';
         }
     }
 
@@ -248,7 +279,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await loadSettings();
         setupPolling();
-        runNetworkCheck(); // Initial check
+        await runNetworkCheck(); // Initial check
+        await updateTrafficInfo();
     });
 
     usernameInput.addEventListener('input', debouncedSaveCredentials);
