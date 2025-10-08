@@ -2,9 +2,9 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const keytar = require('keytar');
 const Store = require('electron-store');
-const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout } = require('./utils/bjut-auth');
+const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout, updateTrafficData } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
-const { createTray } = require('./utils/tray');
+const { createTray, setTrayStatus } = require('./utils/tray');
 const { quitApp } = require('./utils/quitApp');
 
 // Initialize persistent store
@@ -22,8 +22,8 @@ let tray;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 640,
+        width: 900,
+        height: 750,
         frame: true,
         webPreferences: {
             nodeIntegration: true,
@@ -98,7 +98,15 @@ ipcMain.on('set-credentials', async (event, { username, password }) => {
 
 // Network Operations
 ipcMain.handle('check-connectivity', async () => {
-    return await checkConnectivity();
+    const connectivity = await checkConnectivity();
+    if (connectivity.ipv4Access && connectivity.ipv6Access) {
+        setTrayStatus('green');
+    } else if (!connectivity.ipv4Access && !connectivity.ipv6Access) {
+        setTrayStatus('red');
+    } else {
+        setTrayStatus('default');
+    }
+    return connectivity;
 });
 
 ipcMain.handle('network-login', async (event, credentials) => {
@@ -135,6 +143,10 @@ ipcMain.handle('lgn-login-46', async (event, { username, password }) => {
 
 ipcMain.handle('sushe-logout', async () => {
     return await susheLogout();
+});
+
+ipcMain.handle('get-traffic-info', async () => {
+    return await updateTrafficData();
 });
 
 
