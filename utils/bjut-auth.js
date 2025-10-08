@@ -3,32 +3,16 @@ const si = require('systeminformation');
 const axios = require('axios');
 const qs = require('qs');
 const cheerio = require('cheerio');
-const eventBus = require('./event-bus');
-const os = require('os'); // Added for MAC address retrieval
+const eventBus = require('./event-bus');require('os');
 
-/**
- * Detects the active network interface, its type, SSID, and MAC address.
- * @returns {Promise<{name: string, type: 'wifi' | 'ethernet', ssid: string | null, mac: string}>}
- */
-async function getNetworkInterface() {
-    const interfaces = await si.networkInterfaces();
-    const defaultInterface = interfaces.find(iface => iface.default === true);
-
-    if (!defaultInterface) {
-        throw new Error('Could not find the default network interface.');
-    }
-
-    const interfaceName = defaultInterface.iface;
-    const mac = defaultInterface.mac;
-
-    if (/(wi-fi|wifi|wlan|wireless|en0)/i.test(interfaceName)) {
-        const wifiConnections = await si.wifiConnections();
-        const activeConnection = wifiConnections.find(conn => conn.iface === interfaceName);
-        const ssid = activeConnection ? activeConnection.ssid : null;
-        return { name: interfaceName, type: 'wifi', ssid: ssid, mac: mac };
-    } else {
-        return { name: interfaceName, type: 'ethernet', ssid: null, mac: mac };
-    }
+async function getBJUTauthServersReachability() {
+    return Promise.all({
+            "sushe": axios.get('http://10.21.221.98/', {timeout: 1000}),
+            "wlgn": axios.get('https://wlgn.bjut.edu.cn/', {timeout: 1000}),
+            "lgn6": axios.get('https://lgn6.bjut.edu.cn/', {timeout: 1000}),
+            "lgn" : axios.get('https://lgn.bjut.edu.cn/' , {timeout: 1000})
+        }
+    ).then(() => true).catch(() => false);
 }
 
 /**
@@ -47,8 +31,10 @@ async function checkConnectivity() {
 
     eventBus.emit('log', 'Checking IPv4/IPv6 connectivity...');
     const [ipv4Result, ipv6Result] = await Promise.allSettled([
-        checkUrl('https://ipv4.quitsense.cn:10443/api/helloworld'),
-        checkUrl('https://ipv6.quitsense.cn:10443/api/helloworld')
+        //checkUrl('https://ipv4.quitsense.cn:10443/api/helloworld'),
+        //checkUrl('https://ipv6.quitsense.cn:10443/api/helloworld')
+        checkUrl('https://4.ipw.cn'),
+        checkUrl('https://6.ipw.cn')
     ]);
 
     return {
@@ -57,97 +43,48 @@ async function checkConnectivity() {
     };
 }
 
+/*function getkey (ip = 'test'){
+    if(typeof(ip) == 'undefined' || ip == '') return "";
+    var ret=0;
+    var len=ip.length;
+    for(var i=0;i<len;i++)
+        ret^=ip.charCodeAt(i);
+    return ret;
+}*/
 
-// --- NEW: Status Check Functions ---
-async function checkLgnStatus() {
+const keys = 22;
+const blueLgnPrefix = ',0,';
+
+async function login(username, password) {
     try {
-        const response = await axios.get('http://lgn.bjut.edu.cn', { timeout: 3000 });
-        return !response.data.includes('<!--Dr.COMWebLoginID_1.htm-->');
-    } catch (error) {
-        return false;
-    }
-}
-
-async function checkWlgnStatus() {
-    try {
-        const response = await axios.get('http://10.21.251.3/drcom/chkstatus', { params: { callback: `dr${Date.now()}` }, timeout: 3000 });
-        const data = parseJsonp(response.data);
-        return data.result === '1';
-    } catch (error) {
-        return false;
-    }
-}
-
-async function check10221Status() {
-    try {
-        const response = await axios.get('http://10.21.221.98/drcom/chkstatus', { params: { callback: `dr${Date.now()}` }, timeout: 3000 });
-        const data = parseJsonp(response.data);
-        return data.result === '1';
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
- * NEW: Checks the login status by detecting the current network environment.
- * @returns {Promise<{environment: string, loggedIn: boolean, details: object}>}
- */
-async function checkStatus() {
-    eventBus.emit('log', 'Checking network environment and login status...');
-    const network = await getNetworkInterface();
-
-    if (network.type === 'wifi' && network.ssid && network.ssid.toLowerCase().includes('bjut-sushe')) {
-        const loggedIn = await check10221Status();
-        eventBus.emit('log', `Environment: Dormitory. Logged in: ${loggedIn}`);
-        return { environment: 'dormitory', loggedIn };
-    }
-
-    if (network.type === 'wifi' && network.ssid && network.ssid.toLowerCase().includes('bjut_wifi')) {
-        const wlgnLoggedIn = await checkWlgnStatus();
-        const lgn6LoggedIn = await checkLgnStatus();
-        eventBus.emit('log', `Environment: Campus Wi-Fi. WLGN Status: ${wlgnLoggedIn}, LGN6 Status: ${lgn6LoggedIn}`);
-        return { environment: 'campus_wifi', loggedIn: wlgnLoggedIn && lgn6LoggedIn, details: { wlgn: wlgnLoggedIn, lgn6: lgn6LoggedIn } };
-    }
-
-    if (network.type === 'ethernet') {
-        const loggedIn = await checkLgnStatus();
-        eventBus.emit('log', `Environment: Ethernet. Logged in: ${loggedIn}`);
-        return { environment: 'ethernet', loggedIn };
-    }
-
-    eventBus.emit('log', 'Environment: Unknown or disconnected.');
-    return { environment: 'unknown', loggedIn: false };
-}
-
-
-// --- Core Login Logic (Original Structure Preserved) ---
-
-/**
- * Main login function. It orchestrates the login process.
- * I've added an optional 'operator' parameter for the dormitory login.
- * @param {string} username
- * @param {string} password
- * @param {string} [operator='campus']
- */
-async function login(username, password, operator = 'campus') {
-    try {
-        const networkInterface = await getNetworkInterface();
-        eventBus.emit('log', `Interface type: ${networkInterface.type}`);
-        if (networkInterface.ssid) {
-            eventBus.emit('log', `Wi-Fi SSID: ${networkInterface.ssid}`);
+        let [ipv4Access, ipv6Access] = await checkConnectivity();
+        if(ipv4Access && ipv6Access) {
+            eventBus.emit('log', 'Login aborted: ipv4 and ipv6 OK, so you logged in already probably');
         }
 
-        if (networkInterface.ssid && networkInterface.ssid.toLowerCase().includes('bjut-sushe')) {
-            return await susheLogin(username, password, networkInterface.mac, operator);
-        } else if (networkInterface.ssid && networkInterface.ssid.toLowerCase() === 'bjut_wifi') {
-            const connectivity = await checkConnectivity();
-            if(!connectivity.ipv4Access) {
-                await wlgnLogin(username, password, networkInterface.mac);
+        let reachable = await getBJUTauthServersReachability();
+        eventBus.emit('log', `Reachability check: sushe: ${reachable.sushe}, wlgn: ${reachable.wlgn}, lgn: ${reachable.lgn}, lgn6: ${reachable.lgn6}`);
+
+        if(!ipv4Access && ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
+            await lgn6Login(username, password);
+        } else if(!ipv4Access && !ipv6Access) { // 无网络
+            if(reachable.sushe) { // 可以连接红网关，一定是宿舍
+                await susheLogin(username, password);
+            } else if(reachable.wlgn) { // bjut_wifi 100%
+                await wlgnLogin(username, password);
+                await lgn6Login(username, password); // 补ipv6
+            } else { // 应该是特殊地区有线，走lgn
+                await lgnLogin46(username, password);
             }
-            await lgn6Login(username, password, networkInterface.mac);
-        } else {
-            eventBus.emit('log', 'Login skipped: not on a recognized BJUT network.');
-            throw new Error("Login skipped: not on a recognized BJUT network.");
+        } else { // 没ipv4，但是有ipv6？
+            if(reachable.sushe) { // 宿舍重登即可
+                await susheLogout();
+                await susheLogin(username, password);
+            } else if(reachable.wlgn) { // bjut_wifi 只需要重登wlgn
+                await wlgnLogin(username, password);
+            } else { // 否则走lgn，同时关闭46登录，仅ipv4登录
+                await lgnLogin46(username, password);
+            }
         }
     } catch (error) {
         eventBus.emit('log', `Login aborted: ${error.message}`);
@@ -155,40 +92,21 @@ async function login(username, password, operator = 'campus') {
     }
 }
 
-// --- Helper Functions (Preserved and Added) ---
-
-/**
- * Parses the JSONP response by stripping the callback wrapper.
- * @param {string} jsonp The JSONP string.
- * @returns {object} The parsed JSON object.
- */
-function parseJsonp(jsonp) {
-    const jsonString = jsonp.replace(/^.*?\((.*)\)$/, '$1');
-    try {
-        return JSON.parse(jsonString);
-    } catch (error) {
-        // If parsing fails, it might be a plain HTML error page
-        const titleMatch = jsonp.match(/<title>(.*?)<\/title>/);
-        const message = titleMatch ? titleMatch[1] : 'Failed to parse JSONP response and no error title found.';
-        throw new Error(message);
-    }
+function parse_respond(str) {
+    const regex = /dr.{4}\(/g;
+    return JSON.parse(str.replace(regex, '').replace(");", ''))
 }
 
-/**
- * ENHANCED: Handles dormitory network login with operator support and retry logic.
- */
-async function susheLogin(username, password, mac, operator = 'campus') {
-    eventBus.emit('log', `Attempting dormitory login with operator: ${operator}...`);
-    const userAccount = `${username}@${operator}`;
-    const formattedMac = mac.replace(/:/g, '').toUpperCase();
+async function susheLogin(username, password) {
+    const userAccount = `${username}@campus`;
     const data = {
         callback: 'dr1003',
-        'login_method': 1,
+        login_method: 1,
         user_account: userAccount,
         user_password: password,
-        wlan_user_ip: '', // Server can figure this out
+        wlan_user_ip: '',
         wlan_user_ipv6: '',
-        wlan_user_mac: formattedMac,
+        wlan_user_mac: '000000000000', // 原版网页登录也是这个空MAC
         wlan_ac_ip: '',
         wlan_ac_name: '',
         jsVersion: '4.2.1',
@@ -200,39 +118,45 @@ async function susheLogin(username, password, mac, operator = 'campus') {
 
     try {
         const res = await axios.get(loginUrl);
-        const responseData = parseJsonp(res.data);
-
-        if (responseData.result === '1') {
-            const msg = `Dormitory login successful. Message: ${responseData.msg}`;
+        console.log(res.data);
+        const responseData = parse_respond(res.data);
+        if (parseInt(responseData.result) === 1) {
+            const msg = `宿舍网登录成功：${responseData.msg}`;
             eventBus.emit('log', msg);
             return { success: true, message: msg };
         } else {
-            // Retry logic from shell script
-            if (String(responseData.ret_code) === '2') {
-                eventBus.emit('log', 'Stale session detected. Forcing logout and retrying...');
-                await axios.get(`http://10.21.221.98:801/eportal/?c=Portal&a=logout`);
-                const retryRes = await axios.get(loginUrl);
-                const retryData = parseJsonp(retryRes.data);
-                if (retryData.result === '1') {
-                    const msg = `Dormitory login successful after retry. Message: ${retryData.msg}`;
-                    eventBus.emit('log', msg);
-                    return { success: true, message: msg };
-                } else {
-                    throw new Error(`Dormitory login failed on retry. Message: ${retryData.msg}`);
-                }
-            }
-            throw new Error(`Dormitory login failed. Message: ${responseData.msg}`);
+            throw new Error(`宿舍网登录失败：${responseData.msg}`);
         }
     } catch (error) {
-        eventBus.emit('log', `Dormitory login error: ${error.message}`);
+        eventBus.emit('log', `宿舍网登录错误: ${error.message}`);
         throw error;
     }
 }
 
-/**
- * IMPLEMENTED: Handles campus Wi-Fi (bjut_wifi) login.
- */
-async function wlgnLogin(username, password, mac) {
+async function susheLogout() {
+    const logoutUrl = "http://10.21.221.98:801/eportal/portal/logout?callback=dr1003&login_method=1&user_account=6LSm5Y%2B35LiN5a2Y5Zyo&user_password=5L2g54yc5LiN5Yiw&ac_logout=0&register_mode=0&wlan_user_ip=10.126.15.92&wlan_user_ipv6=&wlan_vlan_id=0&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.1&v=4776&lang=zh";
+    try {
+        eventBus.emit('log', '尝试宿舍登出...');
+        const res = await axios.get(logoutUrl, {
+            headers: {
+                'Referer': 'http://10.21.221.98/'
+            }
+        });
+        const responseData = parse_respond(res.data);
+        if (parseInt(responseData.result) === 1) {
+            const msg = `宿舍登出成功: ${responseData.msg}`;
+            eventBus.emit('log', msg);
+            return { success: true, message: msg };
+        } else {
+            throw new Error(`宿舍登出失败: ${responseData.msg}`);
+        }
+    } catch (error) {
+        eventBus.emit('log', `宿舍登出错误: ${error.message}`);
+        throw error;
+    }
+}
+
+async function wlgnLogin(username, password) {
     eventBus.emit('log', 'Attempting campus Wi-Fi (wlgn) login...');
     try {
         const params = {
@@ -256,14 +180,12 @@ async function wlgnLogin(username, password, mac) {
     }
 }
 
-/**
- * IMPLEMENTED: Handles IPv6-only login, often for bjut_wifi.
- */
-async function lgn6Login(username, password, mac) {
+async function lgn6Login(username, password, duallogin = false) {
+    const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
     eventBus.emit('log', 'Attempting IPv6-only (lgn6) login...');
     try {
         const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
-            DDDDD: username, upass: password, v46s: 2, '0MKKey': ''
+            DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''
         }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 
         if (response.data.includes('successfully logged in')) {
@@ -314,5 +236,9 @@ async function lgnLogin46(username, password) {
 module.exports = {
     login,
     checkConnectivity,
-    checkStatus,
+    susheLogin,
+    wlgnLogin,
+    lgn6Login,
+    lgnLogin46,
+    susheLogout
 };

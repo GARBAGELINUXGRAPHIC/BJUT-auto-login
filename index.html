@@ -49,7 +49,9 @@
             background: radial-gradient(900px 600px at 10% -10%, rgba(59, 130, 246, .12), transparent),
             radial-gradient(800px 520px at 110% 10%, rgba(34, 197, 94, .10), transparent),
             var(--bg);
-            font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+            /*font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;*/
+            font: 14px/1.5 Arial, sans-serif;
+            font-weight: 600;
         }
 
         .wrapper {
@@ -293,6 +295,7 @@
         }
 
         .switch-row select {
+            font-family: inherit;
             text-align: center;
             margin: 0;
             height: 26px;
@@ -311,6 +314,11 @@
 
         .switch-row select:focus {
             box-shadow: 0 0 0 3px rgba(59, 130, 246, .12)
+        }
+
+        option {
+            background: var(--surface);
+            color: var(--text);
         }
 
         /* Network status pills (compact, inline) */
@@ -443,7 +451,6 @@
             border-radius: 50%;
         }
 
-
         /* Logs card fills remaining height */
         .log-card {
             display: flex;
@@ -471,6 +478,55 @@
         .log:focus {
             outline: none;
         }
+
+        .help-icon-container {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .help-icon {
+            cursor: help;
+            color: var(--muted);
+            font-weight: bold;
+            margin-left: 8px;
+            border: 1px solid var(--border);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            transition: background .2s, color .2s;
+        }
+
+        .help-icon:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .tooltip {
+            display: none;
+            position: absolute;
+            bottom: calc(100% + 5px);
+            right: 0;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-xs);
+            padding: 12px;
+            box-shadow: var(--shadow);
+            width: 320px;
+            z-index: 10;
+            font-size: 13px;
+            line-height: 1.6;
+            text-align: left;
+        }
+
+        .help-icon-container:hover .tooltip {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -483,7 +539,6 @@
             <h1>BJUT 校园网自动认证</h1>
         </div>
     </div>
-
     <div class="layout">
         <!-- Left column: Auth -> Network -> Settings -->
         <div class="col-left">
@@ -507,8 +562,31 @@
                         </div>
                     </div>
                 </div>
-
                 <div id="status" class="status" style="display:none;"></div>
+
+        <div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button id="susheLoginBtn" class="btn">宿舍登录</button>
+                    <button id="wlgnLoginBtn" class="btn">校园WiFi</button>
+                    <button id="lgn6LoginBtn" class="btn">IPv6登录</button>
+                    <button id="lgnLogin46Btn" class="btn">有线登录</button>
+                    <button id="susheLogoutBtn" class="btn"
+                            style="background-color: var(--danger); border-color: transparent;">宿舍登出
+                    </button>
+                    <div class="help-icon-container">
+                        <span class="help-icon">?</span>
+                        <div class="tooltip">
+                            <strong>登录按钮说明:</strong>
+                            <ul style="margin: 8px 0 0; padding-left: 20px; list-style-type: disc;">
+                                <li style="margin-bottom: 4px;"><b>手动认证一次:</b> 自动检测网络环境并尝试登录。</li>
+                                <li style="margin-bottom: 4px;"><b>宿舍登录:</b> 用于宿舍区的有线网络认证。</li>
+                                <li style="margin-bottom: 4px;"><b>校园WiFi:</b> 用于教学楼、图书馆等区域的 bjut_wifi 无线网络。</li>
+                                <li style="margin-bottom: 4px;"><b>IPv6登录:</b> 单独为IPv6网络进行认证，通常在连接校园WiFi时需要。</li>
+                                <li style="margin-bottom: 4px;"><b>有线登录:</b> 用于教学楼等非宿舍区的有线网络认证。</li>
+                                <li><b>宿舍登出:</b> 断开宿舍有线网络连接。</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
             </section>
 
             <section class="card">
@@ -609,12 +687,19 @@
     const trafficLastUpdated = document.getElementById('traffic-last-updated');
     const netLastChecked = document.getElementById('net-last-checked');
     const trafficPie = document.getElementById('traffic-pie');
+    const susheLoginBtn = document.getElementById('susheLoginBtn');
+    const wlgnLoginBtn = document.getElementById('wlgnLoginBtn');
+    const lgn6LoginBtn = document.getElementById('lgn6LoginBtn');
+    const lgnLogin46Btn = document.getElementById('lgnLogin46Btn');
+    const susheLogoutBtn = document.getElementById('susheLogoutBtn');
 
     // --- State ---
     let isPollingEnabled = true;
     let isAutoAuthEnabled = true;
     let isLoginInProgress = false;
     let pollingIntervalId = null;
+    let userHasScrolled = false;
+    let scrollTimeout = null;
 
     // --- Utility Functions ---
     function debounce(func, delay) {
@@ -628,7 +713,9 @@
     function addLog(message) {
         const time = new Date().toLocaleTimeString();
         logArea.value += `[${time}] ${message}\n`;
-        logArea.scrollTop = logArea.scrollHeight;
+        if (!userHasScrolled) {
+            logArea.scrollTop = logArea.scrollHeight;
+        }
     }
 
     function showStatus(message, isSuccess) {
@@ -686,7 +773,8 @@
         }
 
         isLoginInProgress = true;
-        loginBtn.disabled = true;
+        const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, susheLogoutBtn];
+        buttons.forEach(btn => btn.disabled = true);
         const oldText = loginBtn.textContent;
         loginBtn.textContent = '认证中...';
 
@@ -702,7 +790,7 @@
         } catch (error) {
             showStatus('认证出错: ' + error.message, false);
         } finally {
-            loginBtn.disabled = false;
+            buttons.forEach(btn => btn.disabled = false);
             loginBtn.textContent = oldText;
             isLoginInProgress = false;
         }
@@ -801,6 +889,20 @@
         setupPolling();
         await runNetworkCheck();
         await updateTrafficInfo();
+
+        logArea.addEventListener('scroll', () => {
+            const isScrolledToBottom = logArea.scrollHeight - logArea.clientHeight <= logArea.scrollTop + 1;
+            if (!isScrolledToBottom) {
+                userHasScrolled = true;
+                if (scrollTimeout) clearTimeout(scrollTimeout);
+                scrollTimeout = setTimeout(() => {
+                    userHasScrolled = false;
+                }, 20000); // 20 seconds
+            } else {
+                userHasScrolled = false;
+                if (scrollTimeout) clearTimeout(scrollTimeout);
+            }
+        });
     });
 
     usernameInput.addEventListener('input', debouncedSaveCredentials);
@@ -830,9 +932,52 @@
         addLog(`Start on system start is now ${enabled ? 'enabled' : 'disabled'}.`);
     });
 
+    susheLoginBtn.addEventListener('click', () => handleSpecificLogin('sushe-login'));
+    wlgnLoginBtn.addEventListener('click', () => handleSpecificLogin('wlgn-login'));
+    lgn6LoginBtn.addEventListener('click', () => handleSpecificLogin('lgn6-login'));
+    lgnLogin46Btn.addEventListener('click', () => handleSpecificLogin('lgn-login-46'));
+    susheLogoutBtn.addEventListener('click', () => handleSpecificLogin('sushe-logout'));
+
+    async function handleSpecificLogin(loginType) {
+        const username = usernameInput.value.trim();
+        const password = passwordInput.value.trim();
+
+        // Logout doesn't need credentials
+        if (loginType !== 'sushe-logout' && (!username || !password)) {
+            showStatus('请输入学号和密码', false);
+            return;
+        }
+
+        // Disable all buttons
+        const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, susheLogoutBtn];
+        buttons.forEach(btn => btn.disabled = true);
+
+        showStatus(`Executing ${loginType}...`, true);
+        addLog(`Executing ${loginType}...`);
+
+        try {
+            const result = await ipcRenderer.invoke(loginType, {username, password});
+            if (result && result.success) {
+                showStatus(`${result.message}`, true);
+                addLog(`${loginType} Succeeded: ${result.message}`);
+                updateTrafficInfo();
+            } else {
+                const message = result ? result.message : '未知错误';
+                showStatus(`${loginType} 失败: ${message}`, false);
+                addLog(`${loginType} Failed: ${message}`);
+            }
+        } catch (error) {
+            showStatus(`${loginType} 错误: ${error.message}`, false);
+            addLog(`${loginType} error: ${error.message}`);
+        } finally {
+            buttons.forEach(btn => btn.disabled = false);
+        }
+    }
+
     ipcRenderer.on('log-message', (event, message) => {
         addLog(message);
     });
 </script>
 </body>
 </html>
+                

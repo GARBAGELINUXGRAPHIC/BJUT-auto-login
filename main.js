@@ -2,7 +2,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const keytar = require('keytar');
 const Store = require('electron-store');
-const { login, checkConnectivity } = require('./utils/bjut-auth');
+const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
 const { createTray } = require('./utils/tray');
 const { quitApp } = require('./utils/quitApp');
@@ -23,7 +23,8 @@ let tray;
 function createWindow() {
     mainWindow = new BrowserWindow({
         width: 800,
-        height: 604,
+        height: 640,
+        frame: true,
         webPreferences: {
             nodeIntegration: true,
             contextIsolation: false,
@@ -31,6 +32,7 @@ function createWindow() {
         }
     });
     mainWindow.loadFile('index.html');
+    mainWindow.setMenu(null);
 }
 
 app.whenReady().then(() => {
@@ -71,8 +73,6 @@ ipcMain.on('set-start-on-login', (event, enabled) => {
     app.setLoginItemSettings({ openAtLogin: enabled });
     store.set('startOnLogin', enabled);
 });
-
-
 
 // Credential Management
 ipcMain.handle('get-credentials', async () => {
@@ -115,6 +115,28 @@ ipcMain.handle('network-login', async (event, credentials) => {
         return { success: false, message: error.message };
     }
 });
+
+// Specific Login/Logout Handlers
+ipcMain.handle('sushe-login', async (event, { username, password }) => {
+    return await susheLogin(username, password);
+});
+
+ipcMain.handle('wlgn-login', async (event, { username, password }) => {
+    return await wlgnLogin(username, password);
+});
+
+ipcMain.handle('lgn6-login', async (event, { username, password }) => {
+    return await lgn6Login(username, password);
+});
+
+ipcMain.handle('lgn-login-46', async (event, { username, password }) => {
+    return await lgnLogin46(username, password);
+});
+
+ipcMain.handle('sushe-logout', async () => {
+    return await susheLogout();
+});
+
 
 // --- Utility Functions --- //
 
