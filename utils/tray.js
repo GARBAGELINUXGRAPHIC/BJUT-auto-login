@@ -33,6 +33,7 @@ function createTray(mainWindow, quitApp) {
 
     const contextMenu = Menu.buildFromTemplate([
         { label: '显示主界面', click: () => { mainWindow.show(); } },
+        { label: '打开开发者工具', click: () => { mainWindow.webContents.openDevTools(); } },
         { type: 'separator' },
         {
             label: '退出', click: () => {

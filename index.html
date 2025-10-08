@@ -50,7 +50,7 @@
             radial-gradient(800px 520px at 110% 10%, rgba(34, 197, 94, .10), transparent),
             var(--bg);
             /*font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;*/
-            font: 14px/1.5 Arial, sans-serif;
+            font: 13px Arial, sans-serif;
             font-weight: 600;
         }
 
@@ -218,18 +218,6 @@
             font-size: 13px
         }
 
-        .success {
-            background: rgba(34, 197, 94, .10);
-            border-color: rgba(34, 197, 94, .35);
-            color: #16a34a
-        }
-
-        .error {
-            background: rgba(239, 68, 68, .10);
-            border-color: rgba(239, 68, 68, .35);
-            color: #dc2626
-        }
-
         /* Switch */
         .switch {
             position: relative;
@@ -326,7 +314,7 @@
             display: flex;
             gap: 8px;
             align-items: center;
-            flex-wrap: wrap
+            flex-wrap: wrap;
         }
 
         .pill {
@@ -339,18 +327,6 @@
             background: rgba(255, 255, 255, .06);
             font-weight: 700;
             font-size: 12px
-        }
-
-        .net-ok {
-            color: var(--success);
-            border-color: rgba(34, 197, 94, .35);
-            background: rgba(34, 197, 94, .08)
-        }
-
-        .net-fail {
-            color: var(--danger);
-            border-color: rgba(239, 68, 68, .35);
-            background: rgba(239, 68, 68, .08)
         }
 
         .muted {
@@ -524,8 +500,38 @@
             text-align: left;
         }
 
-        .help-icon-container:hover .tooltip {
+        .help-icon:hover ~ .tooltip,
+        .tooltip:hover {
             display: block;
+        }
+
+        /* Custom Overlay Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 116, 139, 0.4);
+            border-radius: 4px;
+            cursor: auto;
+        }
+
+        /* Show scrollbar thumb on hover of the log area */
+        .log:hover::-webkit-scrollbar-thumb {
+            background-color: rgba(100, 116, 139, 0.6);
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: rgba(100, 116, 139, 0.8);
+        }
+
+        ::-webkit-scrollbar-corner {
+            background-color: transparent;
         }
     </style>
 </head>
@@ -547,12 +553,12 @@
                 <div class="row-2">
                     <div class="field">
                         <label class="label" for="username">学号</label>
-                        <input class="input" type="text" id="username" placeholder="请输入学号">
+                        <input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
                         <button id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
                     </div>
                     <div class="field">
                         <label class="label" for="password">密码</label>
-                        <input class="input" type="password" id="password" placeholder="请输入密码">
+                        <input class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
                         <div class="switch-row" style="gap:6px; padding: 4px 10px; height: 38px; margin-top: 2px;">
                             <span>自动认证</span>
                             <label class="switch" title="断网时自动触发认证">
@@ -564,16 +570,16 @@
                 </div>
                 <div id="status" class="status" style="display:none;"></div>
 
-        <div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+                <div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
                     <button id="susheLoginBtn" class="btn">宿舍登录</button>
                     <button id="wlgnLoginBtn" class="btn">校园WiFi</button>
                     <button id="lgn6LoginBtn" class="btn">lgn6登录</button>
                     <button id="lgnLogin46Btn" class="btn">lgn登录</button>
                     <button id="susheLogoutBtn" class="btn"
-                            style="background-color: var(--danger); border-color: transparent;">宿舍登出
+                            style="background-color: var(--danger); border-color: transparent; color: #e5e7eb">宿舍登出
                     </button>
                     <div class="help-icon-container">
-                        <span class="help-icon">?</span>
+                        <span class="help-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><title>help</title><path fill="currentColor" d="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z" /></svg></span>
                         <div class="tooltip">
                             <strong>登录按钮说明:</strong>
                             <ul style="margin: 8px 0 0; padding-left: 20px; list-style-type: disc;">
@@ -592,7 +598,7 @@
             <section class="card">
                 <h2 class="section-title">网络状态</h2>
                 <div class="net-row" style="justify-content:space-between;">
-                    <div class="net-row">
+                    <div class="net-row" style="height: 100%;">
                         <div id="ipv4-status" class="pill" style="width: 115px;">IPv4: Unknown</div>
                         <div id="ipv6-status" class="pill" style="width: 115px;">IPv6: Unknown</div>
                     </div>
@@ -788,11 +794,11 @@
 
         try {
             const result = await ipcRenderer.invoke('network-login', {username, password});
-            if (result && result.success) {
+            if (result) {
                 showStatus('认证成功！', true);
                 updateTrafficInfo();
             } else {
-                const message = result ? result.message : 'An unknown error occurred.';
+                const message = result && result.message ? result.message : '未知错误';
                 showStatus('认证失败: ' + message, false);
             }
         } catch (error) {
@@ -991,4 +997,3 @@
 </script>
 </body>
 </html>
-                

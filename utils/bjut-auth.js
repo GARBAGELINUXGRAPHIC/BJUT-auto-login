@@ -6,13 +6,24 @@ const cheerio = require('cheerio');
 const eventBus = require('./event-bus');require('os');
 
 async function getBJUTauthServersReachability() {
-    return Promise.all({
-            "sushe": axios.get('http://10.21.221.98/', {timeout: 1000}),
-            "wlgn": axios.get('https://wlgn.bjut.edu.cn/', {timeout: 1000}),
-            "lgn6": axios.get('https://lgn6.bjut.edu.cn/', {timeout: 1000}),
-            "lgn" : axios.get('https://lgn.bjut.edu.cn/' , {timeout: 1000})
+    const servers = {
+        "sushe": 'http://10.21.221.98/',
+        "wlgn": 'https://wlgn.bjut.edu.cn/',
+        "lgn6": 'https://lgn6.bjut.edu.cn/',
+        "lgn": 'https://lgn.bjut.edu.cn/'
+    };
+
+    const promises = Object.entries(servers).map(async ([name, url]) => {
+        try {
+            await axios.get(url, { timeout: 1000 });
+            return [name, true];
+        } catch (e) {
+            return [name, false];
         }
-    ).then(() => true).catch(() => false);
+    });
+
+    const results = await Promise.all(promises);
+    return Object.fromEntries(results);
 }
 
 /**
@@ -22,7 +33,7 @@ async function getBJUTauthServersReachability() {
 async function checkConnectivity() {
     const checkUrl = async (url) => {
         try {
-            const response = await axios.get(url, { timeout: 5000 });
+            const response = await axios.get(url, { timeout: 3000 });
             return response.status === 200;
         } catch (error) {
             return false;
@@ -57,35 +68,44 @@ const blueLgnPrefix = ',0,';
 
 async function login(username, password) {
     try {
-        let [ipv4Access, ipv6Access] = await checkConnectivity();
-        if(ipv4Access && ipv6Access) {
-            eventBus.emit('log', 'Login aborted: ipv4 and ipv6 OK, so you logged in already probably');
-        }
+        const accessibility = await checkConnectivity();
+        const ipv4Access = accessibility.ipv4Access;
+        const ipv6Access = accessibility.ipv6Access;
 
-        let reachable = await getBJUTauthServersReachability();
+        const reachable = await getBJUTauthServersReachability();
         eventBus.emit('log', `Reachability check: sushe: ${reachable.sushe}, wlgn: ${reachable.wlgn}, lgn: ${reachable.lgn}, lgn6: ${reachable.lgn6}`);
 
-        if(!ipv4Access && ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
-            await lgn6Login(username, password);
+        if(ipv4Access && ipv6Access) {
+            eventBus.emit('log', 'Login aborted: ipv4 and ipv6 OK, so you logged in already probably');
+        } else if(!ipv4Access && ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
+            if(reachable.lgn6) {
+                await lgn6Login(username, password);
+            } else {
+                throw new Error("无法联络lgn6服务器")
+            }
         } else if(!ipv4Access && !ipv6Access) { // 无网络
             if(reachable.sushe) { // 可以连接红网关，一定是宿舍
                 await susheLogin(username, password);
             } else if(reachable.wlgn) { // bjut_wifi 100%
                 await wlgnLogin(username, password);
                 await lgn6Login(username, password); // 补ipv6
-            } else { // 应该是特殊地区有线，走lgn
-                await lgnLogin46(username, password);
+            } else if(reachable.lgn) { // 应该是特殊地区有线，走lgn
+                await lgnLogin(username, password);
+            } else {
+                throw new Error("无法联络登录服务器，无法登录")
             }
-        } else { // 没ipv4，但是有ipv6？
+        } else { // 没ipv4，但是有ipv6？？？
             if(reachable.sushe) { // 宿舍重登即可
-                await susheLogout();
                 await susheLogin(username, password);
-            } else if(reachable.wlgn) { // bjut_wifi 只需要重登wlgn
+            } else if(reachable.wlgn) { // bjut_wifi 应该只需要重登wlgn
                 await wlgnLogin(username, password);
-            } else { // 否则走lgn，同时关闭46登录，仅ipv4登录
-                await lgnLogin46(username, password);
+            } else if(reachable.lgn) { // 否则走lgn，同时关闭46登录，仅ipv4登录
+                await lgnLogin(username, password, false);
+            } else {
+                throw new Error("无法联络登录服务器，无法登录");
             }
         }
+        return { success: true, message: '自适应认证成功' };
     } catch (error) {
         eventBus.emit('log', `Login aborted: ${error.message}`);
         throw error; // Re-throw error to be caught by caller
@@ -190,6 +210,27 @@ async function susheLogout() {
     }
 }
 
+async function lgn6Login(username, password, duallogin = false) {
+    const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
+    eventBus.emit('log', 'Logging in: lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)');
+    try {
+        const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
+            DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''
+        }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
+        // console.log(response.data); // html with js dynamic load. consider ipv6 access verification
+        if ((await checkConnectivity()).ipv6Access) {
+            const msg = 'lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)登录成功';
+            eventBus.emit('log', msg);
+            return { success: true, message: msg };
+        } else {
+            throw new Error('lgn6登录失败：尝试登录后仍无ipv6连接');
+        }
+    } catch (error) {
+        eventBus.emit('log', `lgn6登录错误: ${error.message}`);
+        throw error;
+    }
+}
+
 async function wlgnLogin(username, password) {
     eventBus.emit('log', 'Attempting campus Wi-Fi (wlgn) login...');
     try {
@@ -201,7 +242,7 @@ async function wlgnLogin(username, password) {
         const response = await axios.get('http://10.21.251.3/drcom/login', { params });
         const data = parse_respond(response.data);
 
-        if (data.result === '1') {
+        if (parseInt(data.result) === 1) {
             const msg = `wlgn登录成功: ${data.msga || 'N/A'}`;
             eventBus.emit('log', msg);
             return { success: true, message: msg };
@@ -214,32 +255,10 @@ async function wlgnLogin(username, password) {
     }
 }
 
-async function lgn6Login(username, password, duallogin = false) {
-    const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
-    eventBus.emit('log', 'Attempting IPv6-only (lgn6) login...');
-    try {
-        const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
-            DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''
-        }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
-
-        if (response.data.includes('successfully logged in')) {
-            const msg = 'IPv6-only (lgn6) login successful.';
-            eventBus.emit('log', msg);
-            return { success: true, message: msg };
-        } else {
-            throw new Error('LGN6 login failed. The returned page did not contain a success message.');
-        }
-    } catch (error) {
-        eventBus.emit('log', `LGN6 login error: ${error.message}`);
-        throw error;
-    }
-}
-
 /**
- * NEW: Full dual-stack login for Ethernet connections.
+ * 原先的lgn登录，但是现在新版lgn是动态加载的，很有可能无法使用
  */
-async function lgnLogin46(username, password) {
-    eventBus.emit('log', 'Attempting dual-stack (lgn) login...');
+async function lgnLogin(username, password, dualLogin = false) {
     try {
         const res1 = await axios.post('https://lgn6.bjut.edu.cn/V6?https://lgn.bjut.edu.cn', qs.stringify({
             DDDDD: username, upass: password, v46s: 0, '0MKKey': ''
@@ -273,7 +292,7 @@ module.exports = {
     susheLogin,
     wlgnLogin,
     lgn6Login,
-    lgnLogin46,
+    lgnLogin46: lgnLogin,
     susheLogout,
     updateTrafficData
 };
