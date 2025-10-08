@@ -2,7 +2,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron');
 const keytar = require('keytar');
 const Store = require('electron-store');
-const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout } = require('./utils/bjut-auth');
+const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout, updateTrafficData } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
 const { createTray } = require('./utils/tray');
 const { quitApp } = require('./utils/quitApp');
@@ -22,8 +22,8 @@ let tray;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 800,
-        height: 640,
+        width: 900,
+        height: 700,
         frame: true,
         webPreferences: {
             nodeIntegration: true,
@@ -135,6 +135,10 @@ ipcMain.handle('lgn-login-46', async (event, { username, password }) => {
 
 ipcMain.handle('sushe-logout', async () => {
     return await susheLogout();
+});
+
+ipcMain.handle('get-traffic-info', async () => {
+    return await updateTrafficData();
 });
 
 

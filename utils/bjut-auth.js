@@ -94,7 +94,41 @@ async function login(username, password) {
 
 function parse_respond(str) {
     const regex = /dr.{4}\(/g;
-    return JSON.parse(str.replace(regex, '').replace(");", ''))
+    return JSON.parse(str.replace(regex, '').replace("jsonpReturn(", "").replace(");", ''))
+}
+
+async function updateTrafficData() {
+    const url = 'https://lgn6.bjut.edu.cn:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh';
+    try {
+        const res = await axios.get(url);
+        const jsonobj = parse_respond(res.data);
+        const userInfo = jsonobj.user_info;
+
+        if (!userInfo) {
+            throw new Error('User info not found in API response');
+        }
+
+        const trafficPlans = {
+            '本科生默认套餐': '30 GB',
+            '本科生10元套餐': '60 GB',
+            '本科生20元套餐': '120 GB',
+            '本科生30元套餐': '180 GB',
+            '本科生60元套餐': '400 GB',
+        };
+
+        const planName = userInfo.package_group_name;
+        const totalTraffic = trafficPlans[planName] || 'Unknown';
+
+        return {
+            usedTraffic: userInfo.use_flow || 'Unknown',
+            totalTraffic: totalTraffic,
+            balance: userInfo.balance || 'Unknown',
+        };
+
+    } catch (error) {
+        eventBus.emit('log', `error updating traffic data: ${error.message}`);
+        throw error;
+    }
 }
 
 async function susheLogin(username, password) {
@@ -165,17 +199,17 @@ async function wlgnLogin(username, password) {
             terminal_type: '1', lang: 'zh-cn', jsVersion: '4.1', v: Math.floor(Math.random() * 1000) + 1,
         };
         const response = await axios.get('http://10.21.251.3/drcom/login', { params });
-        const data = parseJsonp(response.data);
+        const data = parse_respond(response.data);
 
         if (data.result === '1') {
-            const msg = `Campus Wi-Fi (wlgn) login successful. Message: ${data.msga || 'N/A'}`;
+            const msg = `wlgn登录成功: ${data.msga || 'N/A'}`;
             eventBus.emit('log', msg);
             return { success: true, message: msg };
         } else {
-            throw new Error(`WLGN login failed. Result: ${data.result}, Message: ${data.msga}`);
+            throw new Error(`wlgn登录失败: ${data.result}, Message: ${data.msga}`);
         }
     } catch (error) {
-        eventBus.emit('log', `WLGN login error: ${error.message}`);
+        eventBus.emit('log', `wlgn登录错误: ${error.message}`);
         throw error;
     }
 }
@@ -240,5 +274,6 @@ module.exports = {
     wlgnLogin,
     lgn6Login,
     lgnLogin46,
-    susheLogout
+    susheLogout,
+    updateTrafficData
 };
