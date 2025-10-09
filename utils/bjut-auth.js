@@ -77,28 +77,28 @@ async function login(username, password) {
 
         if(ipv4Access && ipv6Access) {
             eventBus.emit('log', 'Login aborted: ipv4 and ipv6 OK, so you logged in already probably');
-        } else if(!ipv4Access && ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
+        } else if(ipv4Access && !ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
             if(reachable.lgn6) {
                 await lgn6Login(username, password);
             } else {
                 throw new Error("无法联络lgn6服务器")
             }
         } else if(!ipv4Access && !ipv6Access) { // 无网络
-            if(reachable.sushe) { // 可以连接红网关，一定是宿舍
-                await susheLogin(username, password);
-            } else if(reachable.wlgn) { // bjut_wifi 100%
+            if(reachable.wlgn) { // bjut_wifi 100%
                 await wlgnLogin(username, password);
                 await lgn6Login(username, password); // 补ipv6
+            } else if(reachable.sushe) { // 可以连接红网关，那就是宿舍
+                await susheLogin(username, password);
             } else if(reachable.lgn) { // 应该是特殊地区有线，走lgn
                 await lgnLogin(username, password);
             } else {
                 throw new Error("无法联络登录服务器，无法登录")
             }
-        } else { // 没ipv4，但是有ipv6？？？
-            if(reachable.sushe) { // 宿舍重登即可
-                await susheLogin(username, password);
-            } else if(reachable.wlgn) { // bjut_wifi 应该只需要重登wlgn
+        } else if (!ipv4Access && ipv6Access) { // 没ipv4，但是有ipv6？？？
+            if(reachable.wlgn) { // bjut_wifi 应该只需要重登wlgn
                 await wlgnLogin(username, password);
+            } else if(reachable.sushe) { // 宿舍重登即可
+                await susheLogin(username, password);
             } else if(reachable.lgn) { // 否则走lgn，同时关闭46登录，仅ipv4登录
                 await lgnLogin(username, password, false);
             } else {
@@ -114,7 +114,7 @@ async function login(username, password) {
 
 function parse_respond(str) {
     const regex = /dr.{4}\(/g;
-    return JSON.parse(str.replace(regex, '').replace("jsonpReturn(", "").replace(");", ''))
+    return JSON.parse(str.replace(regex, '').replace("jsonpReturn(", "").replace(");", '').replace(")", ""))
 }
 
 async function updateTrafficData() {
@@ -240,6 +240,7 @@ async function wlgnLogin(username, password) {
             terminal_type: '1', lang: 'zh-cn', jsVersion: '4.1', v: Math.floor(Math.random() * 1000) + 1,
         };
         const response = await axios.get('http://10.21.251.3/drcom/login', { params });
+        console.log(response);
         const data = parse_respond(response.data);
 
         if (parseInt(data.result) === 1) {
