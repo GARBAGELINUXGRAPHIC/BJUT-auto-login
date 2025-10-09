@@ -5,7 +5,7 @@ const Store = require('electron-store');
 const { login, checkConnectivity, susheLogin, wlgnLogin, lgn6Login, lgnLogin46, susheLogout, updateTrafficData } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
 const { createTray, setTrayStatus } = require('./utils/tray');
-const { quitApp } = require('./utils/quitApp');
+const quitAppModule = require('./utils/quitApp');
 
 // Initialize persistent store
 const store = new Store();
@@ -33,21 +33,22 @@ function createWindow() {
     });
     mainWindow.loadFile('index.html');
     mainWindow.setMenu(null);
+
+    mainWindow.on('close', (event) => {
+        if (process.platform !== 'darwin' && !quitAppModule.isQuiting) {
+            event.preventDefault();
+            mainWindow.hide();
+        }
+    });
 }
 
 app.whenReady().then(() => {
     createWindow();
-    tray = createTray(mainWindow, quitApp);
+    tray = createTray(mainWindow, quitAppModule.quitApp);
 
     // Apply saved settings on startup
     const startOnLogin = store.get('startOnLogin', false);
     app.setLoginItemSettings({ openAtLogin: startOnLogin });
-
-
-});
-
-app.on('window-all-closed', function () {
-    if (process.platform !== 'darwin') app.quit();
 });
 
 app.on('activate', function () {

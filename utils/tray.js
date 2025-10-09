@@ -6,7 +6,6 @@ const isMac = process.platform === 'darwin';
 
 function loadStatusIcon(status) {
     let imagePath;
-    let isTemplate = false;
 
     if (status === 'green') {
         imagePath = path.join(__dirname, 'icon-green.png');
@@ -15,14 +14,13 @@ function loadStatusIcon(status) {
     } else { // 'default'
         if (isMac) {
             imagePath = path.join(__dirname, 'icon-macTemplate.png');
-            isTemplate = true;
         } else {
             imagePath = path.join(__dirname, 'icon-blue.png');
         }
     }
 
     const image = nativeImage.createFromPath(imagePath);
-    if (isTemplate) {
+    if (isMac) {
         image.setTemplateImage(true);
     }
     return image;

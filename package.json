@@ -5,7 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder"
+    "build": "npm run build:mac && npm run build:win && npm run build:linux",
+    "build:mac": "electron-builder --mac --x64 --arm64",
+    "build:win": "electron-builder --win --x64 --ia32 --arm64",
+    "build:linux": "electron-builder --linux --x64 --arm64"
   },
   "build": {
     "appId": "com.quitsense.bjutautologin",
@@ -16,13 +19,16 @@
       "utils/**/*"
     ],
     "mac": {
-      "target": "dmg"
+      "target": "dmg",
+      "icon": "utils/basic.png"
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "utils/basic.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "utils/basic.png"
     }
   },
   "dependencies": {

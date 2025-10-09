@@ -54,18 +54,6 @@ async function checkConnectivity() {
     };
 }
 
-/*function getkey (ip = 'test'){
-    if(typeof(ip) == 'undefined' || ip == '') return "";
-    var ret=0;
-    var len=ip.length;
-    for(var i=0;i<len;i++)
-        ret^=ip.charCodeAt(i);
-    return ret;
-}*/
-
-const keys = 22;
-const blueLgnPrefix = ',0,';
-
 async function login(username, password) {
     try {
         const accessibility = await checkConnectivity();
