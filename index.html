@@ -4,6 +4,7 @@
     <meta charset="UTF-8"/>
     <title>BJUT-Network-Autologin</title>
     <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
     <style>
         :root {
             --bg: #0f172a;
@@ -350,12 +351,6 @@
             }
         }
 
-        #traffic-pie {
-            width: 150px;
-            height: 150px;
-            display: block
-        }
-
         .legend {
             display: grid;
             gap: 8px
@@ -400,19 +395,24 @@
             text-align: center;
         }
 
+        @property --traffic-percent {
+          syntax: '<number>';
+          inherits: false;
+          initial-value: 0;
+        }
+
         #traffic-pie {
             position: relative;
             width: 150px;
             height: 150px;
             margin: 0 auto;
             border-radius: 50%;
-            background: conic-gradient(var(--primary) 0% 0%, var(--ring) 0% 100%);
+            background: conic-gradient(var(--primary) calc(var(--traffic-percent) * 1%), var(--ring) 0);
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 12px;
-            color: var(--muted);
+            transition: --traffic-percent 0.5s ease-out;
         }
 
         #traffic-pie::before {
@@ -425,6 +425,22 @@
             height: calc(100% - 36px);
             background: var(--surface);
             border-radius: 50%;
+        }
+
+        #traffic-pie > span {
+            position: relative;
+            z-index: 1;
+        }
+
+        #traffic-percent-text {
+            color: var(--text);
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        #traffic-percent-label {
+            color: var(--muted);
+            font-size: 12px;
         }
 
         /* Logs card fills remaining height */
@@ -494,7 +510,7 @@
             border-radius: var(--radius-xs);
             padding: 12px;
             box-shadow: var(--shadow);
-            width: 320px;
+            width: 340px;
             z-index: 10;
             font-size: 13px;
             line-height: 1.6;
@@ -566,7 +582,7 @@
 <div class="wrapper">
     <div class="header">
         <div class="logo" aria-hidden="true">
-            <img src="./utils/basic.png" style="height: 30px; filter: invert(100%);)" alt="icon"/>
+            <img src="./utils/basic.png" style="height: 30px; filter: invert(100%);)"/>
         </div>
         <div>
             <h1>BJUT 校园网自动认证</h1>
@@ -580,12 +596,12 @@
                 <div class="row-2">
                     <div class="field">
                         <label class="label" for="username">学号</label>
-                        <input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
-                        <button id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
+                        <input data-ripple class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
+                        <button data-ripple id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
                     </div>
                     <div class="field">
                         <label class="label" for="password">密码</label>
-                        <input class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
+                        <input data-ripple class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
                         <div class="switch-row" style="gap:6px; padding: 4px 10px; height: 38px; margin-top: 2px;">
                             <span>自动认证</span>
                             <label class="switch" title="断网时自动触发认证">
@@ -598,15 +614,15 @@
                 <div id="status" class="status" style="display:none;"></div>
 
                 <div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
-                    <button id="susheLoginBtn" class="btn">宿舍登录</button>
-                    <button id="wlgnLoginBtn" class="btn">校园WiFi</button>
-                    <button id="lgn6LoginBtn" class="btn">lgn6登录</button>
-                    <button id="lgnLogin46Btn" class="btn">lgn登录</button>
-                    <button id="susheLogoutBtn" class="btn"
+                    <button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
+                    <button data-ripple id="wlgnLoginBtn" class="btn">校园WiFi</button>
+                    <button data-ripple id="lgn6LoginBtn" class="btn">lgn6登录</button>
+                    <button data-ripple id="lgnLogin46Btn" class="btn">lgn登录</button>
+                    <button data-ripple id="susheLogoutBtn" class="btn"
                             style="background-color: var(--danger); border-color: transparent; color: #e5e7eb">宿舍登出
                     </button>
                     <div class="help-icon-container">
-                        <span class="help-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><title>help</title><path fill="currentColor" d="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z" /></svg></span>
+                        <span class="help-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path fill="currentColor" d="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z" /></svg></span>
                         <div class="tooltip">
                             <strong>登录按钮说明:</strong>
                             <ul style="margin: 8px 0 0; padding-left: 20px; list-style-type: disc;">
@@ -629,7 +645,7 @@
                         <div id="ipv4-status" class="pill" style="width: 115px;">IPv4: Unknown</div>
                         <div id="ipv6-status" class="pill" style="width: 115px;">IPv6: Unknown</div>
                     </div>
-                    <button id="refresh-btn" class="btn">刷新</button>
+                    <button data-ripple id="refresh-btn" class="btn">刷新</button>
                 </div>
                 <div class="muted" id="net-last-checked" style="margin-top:6px;">上次检查：—</div>
             </section>
@@ -670,7 +686,10 @@
             <section class="card">
                 <h2 class="section-title">流量信息</h2>
                 <div class="traffic">
-                    <div id="traffic-pie"></div>
+                    <div id="traffic-pie">
+                        <span id="traffic-percent-text"></span>
+                        <span id="traffic-percent-label">已用</span>
+                    </div>
                     <div class="legend">
                         <div class="legend-line">
                             <div class="legend-left">
@@ -706,6 +725,7 @@
     </div>
 </div>
 
+<script src="./utils/ripple.js"></script>
 <script>
     const {ipcRenderer} = require('electron');
 
@@ -728,6 +748,8 @@
     const trafficLastUpdated = document.getElementById('traffic-last-updated');
     const netLastChecked = document.getElementById('net-last-checked');
     const trafficPie = document.getElementById('traffic-pie');
+    const trafficPercentText = document.getElementById('traffic-percent-text');
+    const trafficPercentLabel = document.getElementById('traffic-percent-label');
     const susheLoginBtn = document.getElementById('susheLoginBtn');
     const wlgnLoginBtn = document.getElementById('wlgnLoginBtn');
     const lgn6LoginBtn = document.getElementById('lgn6LoginBtn');
@@ -882,22 +904,19 @@
     function updateTrafficPie(usedBytes, totalBytes) {
         if (!trafficPie) return;
 
-        const usedColor = cssVar('--primary', '#3b82f6');
-        const remainColor = cssVar('--ring', '#334155');
-        const textColor = cssVar('--text', '#e5e7eb');
-        const mutedColor = cssVar('--muted', '#9ca3af');
-
         if (!isFinite(usedBytes) || !isFinite(totalBytes) || totalBytes <= 0) {
-            trafficPie.style.background = `conic-gradient(${remainColor} 0% 100%)`;
-            trafficPie.textContent = '—';
+            trafficPie.style.setProperty('--traffic-percent', '0');
+            trafficPercentText.textContent = '—';
+            trafficPercentLabel.style.display = 'none';
             return;
         }
 
+        trafficPercentLabel.style.display = 'inline';
         const ratio = Math.max(0, Math.min(1, usedBytes / totalBytes));
         const percent = ratio * 100;
 
-        trafficPie.style.background = `conic-gradient(${usedColor} 0% ${percent}%, ${remainColor} ${percent}% 100%)`;
-        trafficPie.innerHTML = `<span style="position: relative; z-index: 1; color: ${textColor}; font-size: 18px; font-weight: 700;">${percent.toFixed(0)}%</span><span style="position: relative; z-index: 1; color: ${mutedColor}; font-size: 12px;">已用</span>`;
+        trafficPie.style.setProperty('--traffic-percent', percent);
+        trafficPercentText.textContent = `${percent.toFixed(0)}%`;
     }
 
     async function updateTrafficInfo() {
@@ -933,6 +952,27 @@
         setupPolling();
         await runNetworkCheck();
         await updateTrafficInfo();
+
+        // --- Theme Change Handling ---
+        function applyRippleTheme(isDarkMode) {
+            const rippleElements = document.querySelectorAll('[data-ripple]');
+            rippleElements.forEach(el => {
+                el.removeAttribute('data-ripple-light');
+                el.removeAttribute('data-ripple-dark');
+                if (isDarkMode) {
+                    el.setAttribute('data-ripple-light', 'true');
+                } else {
+                    el.setAttribute('data-ripple-dark', 'true');
+                }
+            });
+        }
+        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        applyRippleTheme(darkModeMediaQuery.matches);
+        darkModeMediaQuery.addEventListener('change', (e) => {
+            const isDark = e.matches;
+            applyRippleTheme(isDark);
+        });
+        // ---
 
         logArea.addEventListener('scroll', () => {
             const isScrolledToBottom = logArea.scrollHeight - logArea.clientHeight <= logArea.scrollTop + 1;
