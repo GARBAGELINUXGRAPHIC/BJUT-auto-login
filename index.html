@@ -158,6 +158,11 @@
             color: var(--muted)
         }
 
+        .input-wrapper {
+            position: relative;
+            border-radius: var(--radius-xs);
+        }
+
         .input {
             width: 100%;
             border: 1px solid var(--border);
@@ -596,12 +601,16 @@
                 <div class="row-2">
                     <div class="field">
                         <label class="label" for="username">学号</label>
-                        <input data-ripple class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
+                        <div class="input-wrapper" data-ripple>
+                            <input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
+                        </div>
                         <button data-ripple id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
                     </div>
                     <div class="field">
                         <label class="label" for="password">密码</label>
-                        <input data-ripple class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
+                        <div class="input-wrapper" data-ripple>
+                            <input class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
+                        </div>
                         <div class="switch-row" style="gap:6px; padding: 4px 10px; height: 38px; margin-top: 2px;">
                             <span>自动认证</span>
                             <label class="switch" title="断网时自动触发认证">
@@ -953,24 +962,67 @@
         await runNetworkCheck();
         await updateTrafficInfo();
 
-        // --- Theme Change Handling ---
-        function applyRippleTheme(isDarkMode) {
-            const rippleElements = document.querySelectorAll('[data-ripple]');
-            rippleElements.forEach(el => {
-                el.removeAttribute('data-ripple-light');
-                el.removeAttribute('data-ripple-dark');
-                if (isDarkMode) {
-                    el.setAttribute('data-ripple-light', 'true');
-                } else {
-                    el.setAttribute('data-ripple-dark', 'true');
-                }
+        // --- Ripple Effect Handling ---
+        const ripple = new Ripple();
+        const rippleElements = document.querySelectorAll('[data-ripple]');
+        const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
+
+        rippleElements.forEach(element => {
+            let rippleAnimation = null; // To hold the animation object
+
+            element.addEventListener('mousedown', (event) => {
+                const color = darkMode.matches ? 'light' : 'dark';
+
+                // Create the circle element using the library's logic
+                element.style.position = 'relative';
+                element.style.overflow = 'hidden';
+                const rect = element.getBoundingClientRect();
+                const radius = ripple.findFurthestPoint(event.clientX, element.offsetWidth, rect.left, event.clientY, element.offsetHeight, rect.top);
+                const circle = document.createElement('span');
+                ripple.appyStyles(circle, color, rect, radius, event);
+                element.appendChild(circle);
+
+                // Start the "in" animation
+                rippleAnimation = circle.animate([
+                    {transform: 'scale(0)', opacity: 0.5},
+                    {transform: 'scale(1.5)', opacity: 0.5} // Stay visible
+                ], {
+                    duration: 500,
+                    easing: 'linear',
+                    fill: 'forwards' // Keep the final state
+                });
+
+                // Store the circle for the mouseup event
+                element.rippleCircle = circle;
             });
-        }
-        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        applyRippleTheme(darkModeMediaQuery.matches);
-        darkModeMediaQuery.addEventListener('change', (e) => {
-            const isDark = e.matches;
-            applyRippleTheme(isDark);
+
+            const fadeOutRipple = (event) => {
+                if (!element.rippleCircle) return;
+
+                const circle = element.rippleCircle;
+
+                // Create a new animation to fade out
+                const fadeOutAnimation = circle.animate([
+                    {opacity: 0.5},
+                    {opacity: 0}
+                ], {
+                    duration: 250, // Faster fade out
+                    easing: 'linear',
+                    fill: 'forwards'
+                });
+
+                fadeOutAnimation.onfinish = () => {
+                    circle.remove();
+                    element.rippleCircle = null;
+                };
+
+                if (rippleAnimation) {
+                    // We don't need to cancel, just let the fade out play
+                }
+            };
+
+            element.addEventListener('mouseup', fadeOutRipple);
+            element.addEventListener('mouseleave', fadeOutRipple);
         });
         // ---
 
