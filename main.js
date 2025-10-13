@@ -35,9 +35,15 @@ function createWindow() {
     mainWindow.setMenu(null);
 
     mainWindow.on('close', (event) => {
-        if (process.platform !== 'darwin' && !quitAppModule.isQuiting) {
+        if (!quitAppModule.isQuiting) {
             event.preventDefault();
             mainWindow.hide();
+        }
+    });
+
+    app.on('window-all-closed', () => {
+        if (process.platform !== 'darwin') {
+            app.quit();
         }
     });
 }
