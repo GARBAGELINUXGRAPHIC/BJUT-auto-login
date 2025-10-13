@@ -18,149 +18,171 @@ const KEYTAR_ACCOUNT = 'user_credentials';
 let mainWindow;
 let tray;
 
-// --- App Setup ---
+// --- Single Instance Lock ---
+const gotTheLock = app.requestSingleInstanceLock();
 
-function createWindow() {
-    mainWindow = new BrowserWindow({
-        width: 900,
-        height: 750,
-        frame: true,
-        webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false,
-            autoHideMenuBar: true
-        }
-    });
-    mainWindow.loadFile('index.html');
-    mainWindow.setMenu(null);
-
-    mainWindow.on('close', (event) => {
-        if (!quitAppModule.isQuiting) {
-            event.preventDefault();
-            mainWindow.hide();
+if (!gotTheLock) {
+    app.quit();
+} else {
+    app.on('second-instance', (event, commandLine, workingDirectory) => {
+        // Someone tried to run a second instance, we should focus our window.
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            if (!mainWindow.isVisible()) mainWindow.show();
+            mainWindow.focus();
         }
     });
 
-    app.on('window-all-closed', () => {
-        if (process.platform !== 'darwin') {
-            app.quit();
+    // --- App Setup ---
+
+    function createWindow() {
+        mainWindow = new BrowserWindow({
+            width: 900,
+            height: 750,
+            frame: true,
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false,
+                autoHideMenuBar: true
+            }
+        });
+        mainWindow.loadFile('index.html');
+        mainWindow.setMenu(null);
+
+        mainWindow.on('close', (event) => {
+            if (!quitAppModule.isQuiting) {
+                event.preventDefault();
+                mainWindow.hide();
+            }
+        });
+
+        app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') {
+                app.quit();
+            }
+        });
+    }
+
+    app.whenReady().then(() => {
+        createWindow();
+        tray = createTray(mainWindow, quitAppModule.quitApp);
+
+        // Apply saved settings on startup
+        const startOnLogin = store.get('startOnLogin', false);
+        app.setLoginItemSettings({ openAtLogin: startOnLogin });
+    });
+
+    app.on('activate', function () {
+        // On macOS it's common to re-create a window in the app when the
+        // dock icon is clicked and there are no other windows open.
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow();
+        } else if (mainWindow) {
+            mainWindow.show();
         }
     });
-}
 
-app.whenReady().then(() => {
-    createWindow();
-    tray = createTray(mainWindow, quitAppModule.quitApp);
+    // --- IPC Handlers --- //
 
-    // Apply saved settings on startup
-    const startOnLogin = store.get('startOnLogin', false);
-    app.setLoginItemSettings({ openAtLogin: startOnLogin });
-});
+    eventBus.on('log', (message) => {
+        sendLogMessage(message);
+    });
 
-app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-});
+    // Settings Management
+    ipcMain.handle('get-setting', async (event, key) => {
+        return store.get(key);
+    });
 
-// --- IPC Handlers --- //
+    ipcMain.on('set-setting', (event, { key, value }) => {
+        store.set(key, value);
+    });
 
-eventBus.on('log', (message) => {
-    sendLogMessage(message);
-});
+    ipcMain.on('set-start-on-login', (event, enabled) => {
+        app.setLoginItemSettings({ openAtLogin: enabled });
+        store.set('startOnLogin', enabled);
+    });
 
-// Settings Management
-ipcMain.handle('get-setting', async (event, key) => {
-    return store.get(key);
-});
-
-ipcMain.on('set-setting', (event, { key, value }) => {
-    store.set(key, value);
-});
-
-ipcMain.on('set-start-on-login', (event, enabled) => {
-    app.setLoginItemSettings({ openAtLogin: enabled });
-    store.set('startOnLogin', enabled);
-});
-
-// Credential Management
-ipcMain.handle('get-credentials', async () => {
-    try {
-        const password = await keytar.getPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
-        if (password) {
-            return JSON.parse(password);
+    // Credential Management
+    ipcMain.handle('get-credentials', async () => {
+        try {
+            const password = await keytar.getPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT);
+            if (password) {
+                return JSON.parse(password);
+            }
+        } catch (error) {
+            eventBus.emit('log', 'Could not retrieve credentials.');
         }
-    } catch (error) {
-        eventBus.emit('log', 'Could not retrieve credentials.');
-    }
-    return null;
-});
+        return null;
+    });
 
-ipcMain.on('set-credentials', async (event, { username, password }) => {
-    try {
-        const credentials = JSON.stringify({ username, password });
-        await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, credentials);
-    } catch (error) {
-        eventBus.emit('log', `Error saving credentials: ${error.message}`);
-    }
-});
+    ipcMain.on('set-credentials', async (event, { username, password }) => {
+        try {
+            const credentials = JSON.stringify({ username, password });
+            await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, credentials);
+        } catch (error) {
+            eventBus.emit('log', `Error saving credentials: ${error.message}`);
+        }
+    });
 
-// Network Operations
-ipcMain.handle('check-connectivity', async () => {
-    const connectivity = await checkConnectivity();
-    if (connectivity.ipv4Access && connectivity.ipv6Access) {
-        setTrayStatus('green');
-    } else if (!connectivity.ipv4Access && !connectivity.ipv6Access) {
-        setTrayStatus('red');
-    } else {
-        setTrayStatus('default');
-    }
-    return connectivity;
-});
+    // Network Operations
+    ipcMain.handle('check-connectivity', async () => {
+        const connectivity = await checkConnectivity();
+        if (connectivity.ipv4Access && connectivity.ipv6Access) {
+            setTrayStatus('green');
+        } else if (!connectivity.ipv4Access && !connectivity.ipv6Access) {
+            setTrayStatus('red');
+        } else {
+            setTrayStatus('default');
+        }
+        return connectivity;
+    });
 
-ipcMain.handle('network-login', async (event, credentials) => {
-    const { username, password } = credentials;
-    eventBus.emit('log', 'Authentication process started...');
-    
-    try {
-        const result = await login(username, password);
-        eventBus.emit('log', 'Authentication process finished.');
-        return result;
-    } catch (error) {
-        eventBus.emit('log', `Critical authentication error: ${error.message}`);
-        console.error('Authentication failed:', error);
-        return { success: false, message: error.message };
-    }
-});
+    ipcMain.handle('network-login', async (event, credentials) => {
+        const { username, password } = credentials;
+        eventBus.emit('log', 'Authentication process started...');
 
-// Specific Login/Logout Handlers
-ipcMain.handle('sushe-login', async (event, { username, password }) => {
-    return await susheLogin(username, password);
-});
+        try {
+            const result = await login(username, password);
+            eventBus.emit('log', 'Authentication process finished.');
+            return result;
+        } catch (error) {
+            eventBus.emit('log', `Critical authentication error: ${error.message}`);
+            console.error('Authentication failed:', error);
+            return { success: false, message: error.message };
+        }
+    });
 
-ipcMain.handle('wlgn-login', async (event, { username, password }) => {
-    return await wlgnLogin(username, password);
-});
+    // Specific Login/Logout Handlers
+    ipcMain.handle('sushe-login', async (event, { username, password }) => {
+        return await susheLogin(username, password);
+    });
 
-ipcMain.handle('lgn6-login', async (event, { username, password }) => {
-    return await lgn6Login(username, password);
-});
+    ipcMain.handle('wlgn-login', async (event, { username, password }) => {
+        return await wlgnLogin(username, password);
+    });
 
-ipcMain.handle('lgn-login-46', async (event, { username, password }) => {
-    return await lgnLogin46(username, password);
-});
+    ipcMain.handle('lgn6-login', async (event, { username, password }) => {
+        return await lgn6Login(username, password);
+    });
 
-ipcMain.handle('sushe-logout', async () => {
-    return await susheLogout();
-});
+    ipcMain.handle('lgn-login-46', async (event, { username, password }) => {
+        return await lgnLogin46(username, password);
+    });
 
-ipcMain.handle('get-traffic-info', async () => {
-    return await updateTrafficData();
-});
+    ipcMain.handle('sushe-logout', async () => {
+        return await susheLogout();
+    });
+
+    ipcMain.handle('get-traffic-info', async () => {
+        return await updateTrafficData();
+    });
 
 
-// --- Utility Functions --- //
+    // --- Utility Functions --- //
 
-function sendLogMessage(message) {
-    if (mainWindow) {
-        mainWindow.webContents.send('log-message', message);
+    function sendLogMessage(message) {
+        if (mainWindow) {
+            mainWindow.webContents.send('log-message', message);
+        }
     }
 }

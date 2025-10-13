@@ -484,7 +484,8 @@
         }
 
         .tooltip {
-            display: none;
+            opacity: 0;
+            visibility: hidden;
             position: absolute;
             bottom: calc(100% + 5px);
             left: 0;
@@ -498,11 +499,13 @@
             font-size: 13px;
             line-height: 1.6;
             text-align: left;
+            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
         }
 
         .help-icon:hover ~ .tooltip,
         .tooltip:hover {
-            display: block;
+            opacity: 1;
+            visibility: visible;
         }
 
         /* Custom Overlay Scrollbar */
