@@ -244,10 +244,8 @@ async function wlgnLogin(username, password) {
     }
 }
 
-/**
- * 原先的lgn登录，但是现在新版lgn是动态加载的，很有可能无法使用
- */
-async function lgnLogin(username, password, dualLogin = false) {
+async function lgnLogin(username, password) {
+    // lgnlogin必须为双栈登录，因为其v46s只能为2或0（仅ipv6/双栈），而在lgn只登录ipv6无意义，在lgn6中实现更佳。
     try {
         const res1 = await axios.post('https://lgn6.bjut.edu.cn/V6?https://lgn.bjut.edu.cn', qs.stringify({
             DDDDD: username, upass: password, v46s: 0, '0MKKey': ''
@@ -261,12 +259,13 @@ async function lgnLogin(username, password, dualLogin = false) {
             DDDDD: username, upass: password, '0MKKey': 'Login', v6ip: v6ip
         }), { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } });
 
-        if (res2.data.includes('successfully logged in')) {
-            const msg = 'Dual-stack (lgn) login successful.';
+        const connection_res = await checkConnectivity();
+        if (connection_res.ipv6Access && connection_res.ipv4Access) {
+            const msg = 'lgn双栈登录成功';
             eventBus.emit('log', msg);
             return { success: true, message: msg };
         } else {
-            throw new Error('LGN login failed. The returned page did not contain a success message.');
+            throw new Error('LGN login failed. No internet access after login');
         }
     } catch (error) {
         eventBus.emit('log', `LGN login error: ${error.message}`);
