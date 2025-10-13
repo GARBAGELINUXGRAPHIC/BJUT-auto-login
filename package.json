@@ -1,5 +1,5 @@
 {
-  "name": "BJUT-Network-Autologin",
+  "name": "bjut-auto-login",
   "version": "0.7.0",
   "description": "BJUT 校园网自动认证 (Electron)",
   "main": "main.js",
