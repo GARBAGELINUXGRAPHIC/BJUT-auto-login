@@ -169,6 +169,10 @@ if (!gotTheLock) {
         return await lgnLogin46(username, password);
     });
 
+    ipcMain.handle('lgn6-login-46', async (event, { username, password }) => {
+        return await lgn6Login(username, password, true);
+    });
+
     ipcMain.handle('sushe-logout', async () => {
         return await susheLogout();
     });

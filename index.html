@@ -1,1118 +1,1113 @@
 <!DOCTYPE html>
 <html lang="zh-cn">
 <head>
-    <meta charset="UTF-8"/>
-    <title>BJUT-Network-Autologin</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-
-    <style>
-        :root {
-            --bg: #0f172a;
-            --surface: #0b1220;
-            --card: #111827;
-            --border: rgba(255, 255, 255, .08);
-            --text: #e5e7eb;
-            --muted: #9ca3af;
-            --primary: #3b82f6;
-            --primary-600: #2563eb;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --ring: #334155;
-            --shadow: 0 10px 24px rgba(0, 0, 0, .28);
-            --radius: 12px;
-            --radius-xs: 8px;
-        }
-
-        @media (prefers-color-scheme: light) {
-            :root {
-                --bg: #f6f7fb;
-                --surface: #fff;
-                --card: #fff;
-                --border: rgba(0, 0, 0, .08);
-                --text: #0f172a;
-                --muted: #6b7280;
-                --ring: #e5e7eb;
-                --shadow: 0 10px 22px rgba(17, 24, 39, .08);
-            }
-        }
-
-        * {
-            box-sizing: border-box
-        }
-
-        html, body {
-            height: 100%
-        }
-
-        body {
-            margin: 0;
-            color: var(--text);
-            background: radial-gradient(900px 600px at 10% -10%, rgba(59, 130, 246, .12), transparent),
-            radial-gradient(800px 520px at 110% 10%, rgba(34, 197, 94, .10), transparent),
-            var(--bg);
-            /*font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;*/
-            font: 13px Arial, sans-serif;
-            font-weight: 600;
-        }
-
-        .wrapper {
-            max-width: 860px;
-            padding: 22px 14px 14px 14px;
-            margin: 0 auto
-        }
-
-        .header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 12px
-        }
-
-        .logo {
-            width: 30px;
-            height: 30px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, var(--primary), #60a5fa);
-            box-shadow: 0 6px 18px rgba(59, 130, 246, .35), inset 0 0 10px rgba(255, 255, 255, .24)
-        }
-
-        h1 {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 700
-        }
-
-        /* Compact two-column layout */
-        .layout {
-            display: grid;
-            grid-template-columns:minmax(260px, 320px) 1fr;
-            gap: 14px;
-            align-items: stretch; /* make columns share row height */
-        }
-
-        @media (max-width: 760px) {
-            .layout {
-                grid-template-columns:1fr
-            }
-        }
-
-        .col-left {
-            display: grid;
-            gap: 14px
-        }
-
-        .col-right {
-            display: grid;
-            gap: 14px;
-            grid-template-rows:auto 1fr; /* traffic auto, logs fill remaining */
-            min-height: 0;
-        }
-
-        .card {
-            background: linear-gradient(180deg, var(--card), var(--surface));
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
-            padding: 12px;
-        }
-
-        .section-title {
-            margin: 0 0 8px;
-            font-size: 12px;
-            color: var(--muted);
-            letter-spacing: .2px;
-            display: flex;
-            align-items: center;
-            gap: 8px
-        }
-
-        .section-title::before {
-            content: "";
-            width: 6px;
-            height: 6px;
-            background: linear-gradient(135deg, var(--primary), #7dd3fc);
-            border-radius: 2px;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .12)
-        }
-
-        .row-2 {
-            display: grid;
-            grid-template-columns:1fr 1fr;
-            gap: 10px
-        }
-
-        @media (max-width: 760px) {
-            .row-2 {
-                grid-template-columns:1fr
-            }
-        }
-
-        .field {
-            display: grid;
-            gap: 6px
-        }
-
-        .label {
-            font-weight: 600;
-            font-size: 12px;
-            color: var(--muted)
-        }
-
-        .input-wrapper {
-            position: relative;
-            border-radius: var(--radius-xs);
-        }
-
-        .input {
-            width: 100%;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 10px;
-            font-size: 14px;
-            color: var(--text);
-            background: rgba(255, 255, 255, .06);
-            outline: none;
-            transition: border-color .2s, box-shadow .2s, background .2s
-        }
-
-        .input::placeholder {
-            color: var(--muted)
-        }
-
-        .input:hover {
-            border-color: rgba(59, 130, 246, .45);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
-        }
-
-        .input:focus {
-            border-color: rgba(59, 130, 246, .55);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .16);
-            background: rgba(255, 255, 255, .04)
-        }
-
-        .btn {
-            background: rgba(255, 255, 255, .06);
-            border: 1px solid var(--border);
-            color: var(--text);
-            border-radius: var(--radius-xs);
-            padding: 6px 10px;
-            font-weight: 600;
-            cursor: pointer;
-            width: auto;
-            font-size: 13px;
-            transition: border-color .2s, box-shadow .2s, opacity .2s
-        }
-
-        .btn:hover {
-            border-color: rgba(59, 130, 246, .45);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
-        }
-
-        .btn:disabled {
-            opacity: .7;
-            cursor: not-allowed
-        }
-
-        .status {
-            margin-top: 8px;
-            padding: 8px 10px;
-            border-radius: var(--radius-xs);
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, .03);
-            font-weight: 600;
-            text-align: center;
-            font-size: 13px
-        }
-
-        /* Switch */
-        .switch {
-            position: relative;
-            width: 46px;
-            height: 26px;
-            display: inline-block
-        }
-
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0
-        }
-
-        .slider {
-            position: absolute;
-            inset: 0;
-            cursor: pointer;
-            background: #3b3b3b;
-            border-radius: 999px;
-            transition: background .25s;
-            box-shadow: inset 0 0 0 1px var(--border)
-        }
-
-        .slider::before {
-            content: "";
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            left: 3px;
-            top: 3px;
-            border-radius: 50%;
-            background: #fff;
-            transition: transform .25s, box-shadow .25s;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, .25)
-        }
-
-        input:checked + .slider {
-            background: var(--primary);
-            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16)
-        }
-
-        input:checked + .slider::before {
-            transform: translateX(20px);
-            box-shadow: 0 3px 10px rgba(59, 130, 246, .45)
-        }
-
-        /* Settings compact rows */
-        .switch-row {
-            display: grid;
-            grid-template-columns:1fr auto;
-            gap: 10px;
-            align-items: center;
-            padding: 8px 10px;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xs);
-            background: rgba(255, 255, 255, .06);
-        }
-
-        .switch-row select:hover {
-            border-color: rgba(59, 130, 246, .45);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
-        }
-
-        .switch-row select {
-            font-family: inherit;
-            text-align: center;
-            margin: 0;
-            height: 26px;
-            width: 46px;
-            line-height: 26px;
-            padding: 0 10px;
-            border: none;
-            border-radius: var(--radius-xs);
-            background: rgba(255, 255, 255, .06);
-            color: var(--text);
-            outline: none;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-        }
-
-        .switch-row select:focus {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, .12)
-        }
-
-        option {
-            background: var(--surface);
-            color: var(--text);
-        }
-
-        /* Network status pills (compact, inline) */
-        .net-row {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-
-        .pill {
-            text-align: center;
-            align-items: center;
-            gap: 6px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid var(--border);
-            background: rgba(255, 255, 255, .06);
-            font-weight: 700;
-            font-size: 12px
-        }
-
-        .muted {
-            color: var(--muted);
-            font-size: 12px;
-            text-align: center;
-        }
-
-        /* Traffic card (compact) */
-        .traffic {
-            margin: 15px;
-            display: grid;
-            grid-template-columns:180px 1fr;
-            gap: 12px;
-            align-items: center
-        }
-
-        @media (max-width: 760px) {
-            .traffic {
-                grid-template-columns:1fr
-            }
-        }
-
-        .legend {
-            display: grid;
-            gap: 8px
-        }
-
-        .legend-line {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 8px 10px;
-            border: 1px dashed var(--border);
-            border-radius: var(--radius-xs);
-            background: rgba(255, 255, 255, .06);
-            font-size: 13px
-        }
-
-        .legend-left {
-            display: flex;
-            align-items: center;
-            gap: 8px
-        }
-
-        .dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 2px;
-            background: var(--ring)
-        }
-
-        .dot-used {
-            background: var(--primary)
-        }
-
-        .dot-total {
-            background: #64748b
-        }
-
-        .tiny {
-            font-size: 12px;
-            color: var(--muted);
-            text-align: center;
-        }
-
-        @property --traffic-percent {
-          syntax: '<number>';
-          inherits: false;
-          initial-value: 0;
-        }
-
-        #traffic-pie {
-            position: relative;
-            width: 150px;
-            height: 150px;
-            margin: 0 auto;
-            border-radius: 50%;
-            background: conic-gradient(var(--primary) calc(var(--traffic-percent) * 1%), var(--ring) 0);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            transition: --traffic-percent 0.5s ease-out;
-        }
-
-        #traffic-pie::before {
-            content: '';
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: calc(100% - 36px);
-            height: calc(100% - 36px);
-            background: var(--surface);
-            border-radius: 50%;
-        }
-
-        #traffic-pie > span {
-            position: relative;
-            z-index: 1;
-        }
-
-        #traffic-percent-text {
-            color: var(--text);
-            font-size: 18px;
-            font-weight: 700;
-        }
-
-        #traffic-percent-label {
-            color: var(--muted);
-            font-size: 12px;
-        }
-
-        /* Logs card fills remaining height */
-        .log-card {
-            display: flex;
-            flex-direction: column;
-            min-height: 0
-        }
-
-        .log {
-            flex: 1;
-            min-height: 200px;
-            padding: 10px;
-            border-radius: var(--radius-xs);
-            background: #0a0f1a;
-            color: #cbd5e1;
-            border: 1px solid rgba(148, 163, 184, .2);
-            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-            font-size: 12px;
-            line-height: 1.55;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            box-shadow: inset 0 6px 16px rgba(0, 0, 0, .22);
-            resize: none;
-        }
-
-        .log:focus {
-            outline: none;
-        }
-
-        .help-icon-container {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .help-icon {
-            cursor: help;
-            color: var(--muted);
-            font-weight: bold;
-            margin-left: 8px;
-            border: 1px solid var(--border);
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            transition: background .2s, color .2s;
-        }
-
-        .help-icon:hover {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .tooltip {
-            opacity: 0;
-            visibility: hidden;
-            position: absolute;
-            bottom: calc(100% + 5px);
-            left: 0;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: var(--radius-xs);
-            padding: 12px;
-            box-shadow: var(--shadow);
-            width: 340px;
-            z-index: 10;
-            font-size: 13px;
-            line-height: 1.6;
-            text-align: left;
-            transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
-        }
-
-        .help-icon:hover ~ .tooltip,
-        .tooltip:hover {
-            opacity: 1;
-            visibility: visible;
-        }
-
-        /* Custom Overlay Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background-color: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background-color: rgba(100, 116, 139, 0.4);
-            border-radius: 4px;
-            cursor: auto;
-        }
-
-        /* Show scrollbar thumb on hover of the log area */
-        .log:hover::-webkit-scrollbar-thumb {
-            background-color: rgba(100, 116, 139, 0.6);
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background-color: rgba(100, 116, 139, 0.8);
-        }
-
-        ::-webkit-scrollbar-corner {
-            background-color: transparent;
-        }
-
-        .success {
-            background: rgba(34, 197, 94, .10);
-            border-color: rgba(34, 197, 94, .35);
-            color: #16a34a
-        }
-
-        .error {
-            background: rgba(239, 68, 68, .10);
-            border-color: rgba(239, 68, 68, .35);
-            color: #dc2626
-        }
-
-        .net-ok {
-            color: var(--success);
-            border-color: rgba(34, 197, 94, .35);
-            background: rgba(34, 197, 94, .08)
-        }
-
-        .net-fail {
-            color: var(--danger);
-            border-color: rgba(239, 68, 68, .35);
-            background: rgba(239, 68, 68, .08)
-        }
-    </style>
+	<meta charset="UTF-8"/>
+	<title>BJUT-Network-Autologin</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1"/>
+	
+	<style>
+		:root {
+			--bg: #0f172a;
+			--surface: #0b1220;
+			--card: #111827;
+			--border: rgba(255, 255, 255, .08);
+			--text: #e5e7eb;
+			--muted: #9ca3af;
+			--primary: #3b82f6;
+			--primary-600: #2563eb;
+			--success: #16a34a;
+			--danger: #dc2626;
+			--ring: #334155;
+			--shadow: 0 10px 24px rgba(0, 0, 0, .28);
+			--radius: 12px;
+			--radius-xs: 8px;
+		}
+		
+		@media (prefers-color-scheme: light) {
+			:root {
+				--bg: #f6f7fb;
+				--surface: #fff;
+				--card: #fff;
+				--border: rgba(0, 0, 0, .08);
+				--text: #0f172a;
+				--muted: #6b7280;
+				--ring: #e5e7eb;
+				--shadow: 0 10px 22px rgba(17, 24, 39, .08);
+			}
+		}
+		
+		* {
+			box-sizing: border-box
+		}
+		
+		html, body {
+			height: 100%
+		}
+		
+		body {
+			margin: 0;
+			color: var(--text);
+			background: radial-gradient(900px 600px at 10% -10%, rgba(59, 130, 246, .12), transparent),
+			radial-gradient(800px 520px at 110% 10%, rgba(34, 197, 94, .10), transparent),
+			var(--bg);
+			/*font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;*/
+			font: 13px Arial, sans-serif;
+			font-weight: 600;
+		}
+		
+		.wrapper {
+			max-width: 860px;
+			padding: 22px 14px 14px 14px;
+			margin: 0 auto
+		}
+		
+		.header {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			margin-bottom: 12px
+		}
+		
+		.logo {
+			width: 30px;
+			height: 30px;
+			border-radius: 10px;
+			background: linear-gradient(135deg, var(--primary), #60a5fa);
+			box-shadow: 0 6px 18px rgba(59, 130, 246, .35), inset 0 0 10px rgba(255, 255, 255, .24)
+		}
+		
+		h1 {
+			margin: 0;
+			font-size: 18px;
+			font-weight: 700
+		}
+		
+		/* Compact two-column layout */
+		.layout {
+			display: grid;
+			grid-template-columns:minmax(260px, 320px) 1fr;
+			gap: 14px;
+			align-items: stretch; /* make columns share row height */
+		}
+		
+		@media (max-width: 760px) {
+			.layout {
+				grid-template-columns:1fr
+			}
+		}
+		
+		.col-left {
+			display: grid;
+			gap: 14px
+		}
+		
+		.col-right {
+			display: grid;
+			gap: 14px;
+			grid-template-rows:auto 1fr; /* traffic auto, logs fill remaining */
+			min-height: 0;
+		}
+		
+		.card {
+			background: linear-gradient(180deg, var(--card), var(--surface));
+			border: 1px solid var(--border);
+			border-radius: var(--radius);
+			box-shadow: var(--shadow);
+			padding: 12px;
+		}
+		
+		.section-title {
+			margin: 0 0 8px;
+			font-size: 12px;
+			color: var(--muted);
+			letter-spacing: .2px;
+			display: flex;
+			align-items: center;
+			gap: 8px
+		}
+		
+		.section-title::before {
+			content: "";
+			width: 6px;
+			height: 6px;
+			background: linear-gradient(135deg, var(--primary), #7dd3fc);
+			border-radius: 2px;
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .12)
+		}
+		
+		.row-2 {
+			display: grid;
+			grid-template-columns:1fr 1fr;
+			gap: 10px
+		}
+		
+		@media (max-width: 760px) {
+			.row-2 {
+				grid-template-columns:1fr
+			}
+		}
+		
+		.field {
+			display: grid;
+			gap: 6px
+		}
+		
+		.label {
+			font-weight: 600;
+			font-size: 12px;
+			color: var(--muted)
+		}
+		
+		.input-wrapper {
+			position: relative;
+			border-radius: var(--radius-xs);
+		}
+		
+		.input {
+			width: 100%;
+			border: 1px solid var(--border);
+			border-radius: var(--radius-xs);
+			padding: 10px;
+			font-size: 14px;
+			color: var(--text);
+			background: rgba(255, 255, 255, .06);
+			outline: none;
+			transition: border-color .2s, box-shadow .2s, background .2s
+		}
+		
+		.input::placeholder {
+			color: var(--muted)
+		}
+		
+		.input:hover {
+			border-color: rgba(59, 130, 246, .45);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
+		}
+		
+		.input:focus {
+			border-color: rgba(59, 130, 246, .55);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .16);
+			background: rgba(255, 255, 255, .04)
+		}
+		
+		.btn {
+			height: 32px;
+			background: rgba(255, 255, 255, .06);
+			border: 1px solid var(--border);
+			color: var(--text);
+			border-radius: var(--radius-xs);
+			padding: 6px 10px;
+			font-weight: 600;
+			cursor: pointer;
+			width: auto;
+			font-size: 13px;
+			transition: border-color .2s, box-shadow .2s, opacity .2s
+		}
+		
+		.btn:hover {
+			border-color: rgba(59, 130, 246, .45);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
+		}
+		
+		.btn:disabled {
+			opacity: .7;
+			cursor: not-allowed
+		}
+		
+		.status {
+			margin-top: 8px;
+			padding: 8px 10px;
+			border-radius: var(--radius-xs);
+			border: 1px solid var(--border);
+			background: rgba(255, 255, 255, .03);
+			font-weight: 600;
+			text-align: center;
+			font-size: 13px
+		}
+		
+		/* Switch */
+		.switch {
+			position: relative;
+			width: 46px;
+			height: 26px;
+			display: inline-block
+		}
+		
+		.switch input {
+			opacity: 0;
+			width: 0;
+			height: 0
+		}
+		
+		.slider {
+			position: absolute;
+			inset: 0;
+			cursor: pointer;
+			background: #3b3b3b;
+			border-radius: 999px;
+			transition: background .25s;
+			box-shadow: inset 0 0 0 1px var(--border)
+		}
+		
+		.slider::before {
+			content: "";
+			position: absolute;
+			width: 20px;
+			height: 20px;
+			left: 3px;
+			top: 3px;
+			border-radius: 50%;
+			background: #fff;
+			transition: transform .25s, box-shadow .25s;
+			box-shadow: 0 3px 10px rgba(0, 0, 0, .25)
+		}
+		
+		input:checked + .slider {
+			background: var(--primary);
+			box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .16)
+		}
+		
+		input:checked + .slider::before {
+			transform: translateX(20px);
+			box-shadow: 0 3px 10px rgba(59, 130, 246, .45)
+		}
+		
+		/* Settings compact rows */
+		.switch-row {
+			display: grid;
+			grid-template-columns:1fr auto;
+			gap: 10px;
+			align-items: center;
+			padding: 8px 10px;
+			border: 1px solid var(--border);
+			border-radius: var(--radius-xs);
+			background: rgba(255, 255, 255, .06);
+		}
+		
+		.switch-row select:hover {
+			border-color: rgba(59, 130, 246, .45);
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .10) inset
+		}
+		
+		.switch-row select {
+			font-family: inherit;
+			text-align: center;
+			margin: 0;
+			height: 26px;
+			width: 46px;
+			line-height: 26px;
+			padding: 0 10px;
+			border: none;
+			border-radius: var(--radius-xs);
+			background: rgba(255, 255, 255, .06);
+			color: var(--text);
+			outline: none;
+			appearance: none;
+			-webkit-appearance: none;
+			-moz-appearance: none;
+		}
+		
+		.switch-row select:focus {
+			box-shadow: 0 0 0 3px rgba(59, 130, 246, .12)
+		}
+		
+		option {
+			background: var(--surface);
+			color: var(--text);
+		}
+		
+		/* Network status pills (compact, inline) */
+		.net-row {
+			display: flex;
+			gap: 8px;
+			align-items: center;
+			flex-wrap: wrap;
+		}
+		
+		.pill {
+			text-align: center;
+			align-items: center;
+			gap: 6px;
+			padding: 6px 10px;
+			border-radius: 999px;
+			border: 1px solid var(--border);
+			background: rgba(255, 255, 255, .06);
+			font-weight: 700;
+			font-size: 12px
+		}
+		
+		.muted {
+			color: var(--muted);
+			font-size: 12px;
+			text-align: center;
+		}
+		
+		/* Traffic card (compact) */
+		.traffic {
+			margin: 15px;
+			display: grid;
+			grid-template-columns:180px 1fr;
+			gap: 12px;
+			align-items: center
+		}
+		
+		@media (max-width: 760px) {
+			.traffic {
+				grid-template-columns:1fr
+			}
+		}
+		
+		.legend {
+			display: grid;
+			gap: 8px
+		}
+		
+		.legend-line {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 10px;
+			padding: 8px 10px;
+			border: 1px dashed var(--border);
+			border-radius: var(--radius-xs);
+			background: rgba(255, 255, 255, .06);
+			font-size: 13px
+		}
+		
+		.legend-left {
+			display: flex;
+			align-items: center;
+			gap: 8px
+		}
+		
+		.dot {
+			width: 10px;
+			height: 10px;
+			border-radius: 2px;
+			background: var(--ring)
+		}
+		
+		.dot-used {
+			background: var(--primary)
+		}
+		
+		.dot-total {
+			background: #64748b
+		}
+		
+		.tiny {
+			font-size: 12px;
+			color: var(--muted);
+			text-align: center;
+		}
+		
+		@property --traffic-percent {
+			syntax: '<number>';
+			inherits: false;
+			initial-value: 0;
+		}
+		
+		#traffic-pie {
+			position: relative;
+			width: 150px;
+			height: 150px;
+			margin: 0 auto;
+			border-radius: 50%;
+			background: conic-gradient(var(--primary) calc(var(--traffic-percent) * 1%), var(--ring) 0);
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			transition: --traffic-percent 0.5s ease-out;
+		}
+		
+		#traffic-pie::before {
+			content: '';
+			position: absolute;
+			left: 50%;
+			top: 50%;
+			transform: translate(-50%, -50%);
+			width: calc(100% - 36px);
+			height: calc(100% - 36px);
+			background: var(--surface);
+			border-radius: 50%;
+		}
+		
+		#traffic-pie > span {
+			position: relative;
+			z-index: 1;
+		}
+		
+		#traffic-percent-text {
+			color: var(--text);
+			font-size: 18px;
+			font-weight: 700;
+		}
+		
+		#traffic-percent-label {
+			color: var(--muted);
+			font-size: 12px;
+		}
+		
+		/* Logs card fills remaining height */
+		.log-card {
+			display: flex;
+			flex-direction: column;
+			min-height: 0
+		}
+		
+		.log {
+			flex: 1;
+			min-height: 200px;
+			padding: 10px;
+			border-radius: var(--radius-xs);
+			background: #0a0f1a;
+			color: #cbd5e1;
+			border: 1px solid rgba(148, 163, 184, .2);
+			font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+			font-size: 12px;
+			line-height: 1.55;
+			overflow-y: auto;
+			white-space: pre-wrap;
+			box-shadow: inset 0 6px 16px rgba(0, 0, 0, .22);
+			resize: none;
+		}
+		
+		.log:focus {
+			outline: none;
+		}
+		
+		@keyframes overlay-appear {
+			from {
+				opacity: 0;
+				transform: scale(0.95);
+			}
+			to {
+				opacity: 1;
+				transform: scale(1);
+			}
+		}
+		
+		/* Custom Overlay Scrollbar */
+		::-webkit-scrollbar {
+			width: 8px;
+			height: 8px;
+		}
+		
+		::-webkit-scrollbar-track {
+			background-color: transparent;
+		}
+		
+		::-webkit-scrollbar-thumb {
+			background-color: rgba(100, 116, 139, 0.4);
+			border-radius: 4px;
+			cursor: auto;
+		}
+		
+		/* Show scrollbar thumb on hover of the log area */
+		.log:hover::-webkit-scrollbar-thumb {
+			background-color: rgba(100, 116, 139, 0.6);
+		}
+		
+		::-webkit-scrollbar-thumb:hover {
+			background-color: rgba(100, 116, 139, 0.8);
+		}
+		
+		::-webkit-scrollbar-corner {
+			background-color: transparent;
+		}
+		
+		.success {
+			background: rgba(34, 197, 94, .10);
+			border-color: rgba(34, 197, 94, .35);
+			color: #16a34a
+		}
+		
+		.error {
+			background: rgba(239, 68, 68, .10);
+			border-color: rgba(239, 68, 68, .35);
+			color: #dc2626
+		}
+		
+		.net-ok {
+			color: var(--success);
+			border-color: rgba(34, 197, 94, .35);
+			background: rgba(34, 197, 94, .08)
+		}
+		
+		.net-fail {
+			color: var(--danger);
+			border-color: rgba(239, 68, 68, .35);
+			background: rgba(239, 68, 68, .08)
+		}
+	</style>
 </head>
 <body>
 <div class="wrapper">
-    <div class="header">
-        <div class="logo" aria-hidden="true">
-            <img src="./utils/basic.png" style="height: 30px; filter: invert(100%);)"/>
-        </div>
-        <div>
-            <h1>BJUT 校园网自动认证</h1>
-        </div>
-    </div>
-    <div class="layout">
-        <!-- Left column: Auth -> Network -> Settings -->
-        <div class="col-left">
-            <section class="card">
-                <h2 class="section-title">认证信息（输入学号密码自动保存）</h2>
-                <div class="row-2">
-                    <div class="field">
-                        <label class="label" for="username">学号</label>
-                        <div class="input-wrapper" data-ripple>
-                            <input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
-                        </div>
-                        <button data-ripple id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
-                    </div>
-                    <div class="field">
-                        <label class="label" for="password">密码</label>
-                        <div class="input-wrapper" data-ripple>
-                            <input class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
-                        </div>
-                        <div class="switch-row" style="gap:6px; padding: 4px 10px; height: 38px; margin-top: 2px;">
-                            <span>自动认证</span>
-                            <label class="switch" title="断网时自动触发认证">
-                                <input type="checkbox" id="auto-auth-switch" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-                <div id="status" class="status" style="display:none;"></div>
+	<div class="header">
+		<div class="logo" aria-hidden="true">
+			<img src="./utils/basic.png" style="height: 30px; filter: invert(100%);)"/>
+		</div>
+		<div>
+			<h1>BJUT 校园网自动认证</h1>
+		</div>
+	</div>
+	<div class="layout">
+		<!-- Left column: Auth -> Network -> Settings -->
+		<div class="col-left">
+			<section class="card">
+				<h2 class="section-title">认证信息（输入学号密码自动保存）</h2>
+				<div class="row-2">
+					<div class="field">
+						<label class="label" for="username">学号</label>
+						<div class="input-wrapper" data-ripple>
+							<input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
+						</div>
+						<button data-ripple id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
+					</div>
+					<div class="field">
+						<label class="label" for="password">密码</label>
+						<div class="input-wrapper" data-ripple>
+							<input class="input" type="password" id="password" placeholder="请输入密码" style="height: 38px">
+						</div>
+						<div class="switch-row" style="gap:6px; padding: 4px 10px; height: 38px; margin-top: 2px;">
+							<span>自动认证</span>
+							<label class="switch" title="断网时自动触发认证">
+								<input type="checkbox" id="auto-auth-switch" checked>
+								<span class="slider"></span>
+							</label>
+						</div>
+					</div>
+				</div>
+				<div id="status" class="status" style="display:none;"></div>
+				
+				<div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+					<button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
+					<button data-ripple id="wlgnLoginBtn" class="btn">wlgn登录</button>
+					<button data-ripple id="lgn6LoginBtn" class="btn">lgn6仅ipv6登录</button>
+					<button data-ripple id="lgnLogin46Btn" class="btn">lgn双栈登录</button>
+					<button data-ripple id="lgn6Login46Btn" class="btn">lgn6双栈登录</button>
+					<!--button data-ripple id="susheLogoutBtn" class="btn"
+							style="background-color: var(--danger); border-color: transparent; color: #e5e7eb">宿舍登出
+					</button-->
+					<button data-ripple id="helpBtn" class="btn"
+					        style="font-family: 'Roboto', sans-serif; border-radius: 1000px; aspect-ratio: 1">?
+					</button>
+				</div>
+			</section>
+			
+			<section class="card">
+				<h2 class="section-title">网络状态</h2>
+				<div class="net-row" style="justify-content:space-between;">
+					<div class="net-row" style="height: 100%;">
+						<div id="ipv4-status" class="pill" style="width: 115px;">IPv4: Unknown</div>
+						<div id="ipv6-status" class="pill" style="width: 115px;">IPv6: Unknown</div>
+					</div>
+					<button data-ripple id="refresh-btn" class="btn">刷新</button>
+				</div>
+				<div class="muted" id="net-last-checked" style="margin-top:6px;">上次检查：—</div>
+			</section>
+			
+			<section class="card">
+				<h2 class="section-title">设置</h2>
+				<div class="switch-row">
+					<span>模式</span>
+					<select id="mode-select">
+						<option value="polling">轮询</option>
+						<option value="detection" disabled>侦测（未实现）</option>
+					</select>
+				</div>
+				<div class="switch-row" style="margin-top:8px;">
+					<span>轮询间隔</span>
+					<select id="interval-select">
+						<option value="5000">5s</option>
+						<option value="10000" selected>10s</option>
+						<option value="30000">30s</option>
+						<option value="60000">60s</option>
+						<option value="600000">10min</option>
+						<option value="3600000">1h</option>
+						<option value="21600000">6h</option>
+					</select>
+				</div>
+				<div class="switch-row" style="margin-top:8px;">
+					<span>开机自启</span>
+					<label class="switch" title="系统登录后自动启动">
+						<input type="checkbox" id="start-on-login-switch">
+						<span class="slider"></span>
+					</label>
+				</div>
+			</section>
+		</div>
+		
+		<!-- Right column: Traffic + Logs (logs fill remaining height) -->
+		<div class="col-right">
+			<section class="card">
+				<h2 class="section-title">流量信息</h2>
+				<div class="traffic">
+					<div id="traffic-pie">
+						<span id="traffic-percent-text"></span>
+						<span id="traffic-percent-label">已用</span>
+					</div>
+					<div class="legend">
+						<div class="legend-line">
+							<div class="legend-left">
+								<span class="dot dot-used"></span>
+								<span>本月已用流量</span>
+							</div>
+							<span id="used-traffic-status" class="net-stat">Unknown</span>
+						</div>
+						<div class="legend-line">
+							<div class="legend-left">
+								<span class="dot dot-total"></span>
+								<span>本月套餐总量</span>
+							</div>
+							<span id="total-traffic-status" class="net-stat">Unknown</span>
+						</div>
+						<div class="legend-line">
+							<div class="legend-left">
+								<span class="dot" style="background: var(--success);"></span>
+								<span>剩余余额</span>
+							</div>
+							<span id="balance-status" class="net-stat">Unknown</span>
+						</div>
+						<div id="traffic-last-updated" class="tiny">上次更新：—</div>
+					</div>
+				</div>
+			</section>
+			
+			<section class="card log-card">
+				<h2 class="section-title">运行日志</h2>
+				<textarea id="logArea" class="log" readonly></textarea>
+			</section>
+		</div>
+	</div>
+</div>
 
-                <div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
-                    <button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
-                    <button data-ripple id="wlgnLoginBtn" class="btn">校园WiFi</button>
-                    <button data-ripple id="lgn6LoginBtn" class="btn">lgn6登录</button>
-                    <button data-ripple id="lgnLogin46Btn" class="btn">lgn登录</button>
-                    <button data-ripple id="susheLogoutBtn" class="btn"
-                            style="background-color: var(--danger); border-color: transparent; color: #e5e7eb">宿舍登出
-                    </button>
-                    <div class="help-icon-container">
-                        <span class="help-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" style="width: 18px; height: 18px;"><path fill="currentColor" d="M10,19H13V22H10V19M12,2C17.35,2.22 19.68,7.62 16.5,11.67C15.67,12.67 14.33,13.33 13.67,14.17C13,15 13,16 13,17H10C10,15.33 10,13.92 10.67,12.92C11.33,11.92 12.67,11.33 13.5,10.67C15.92,8.43 15.32,5.26 12,5A3,3 0 0,0 9,8H6A6,6 0 0,1 12,2Z" /></svg></span>
-                        <div class="tooltip">
-                            <strong>登录按钮说明:</strong>
-                            <ul style="margin: 8px 0 0; padding-left: 20px; list-style-type: disc;">
-                                <li style="margin-bottom: 4px;"><b>手动认证一次:</b> 自动检测网络环境并尝试登录。</li>
-                                <li style="margin-bottom: 4px;"><b>宿舍登录:</b> 用于宿舍区的有线网络认证。</li>
-                                <li style="margin-bottom: 4px;"><b>校园WiFi:</b> 用于教学楼、图书馆等区域的 bjut_wifi 无线网络。</li>
-                                <li style="margin-bottom: 4px;"><b>lgn6登录:</b> 单独为IPv6网络进行认证，通常在连接校园WiFi时需要。</li>
-                                <li style="margin-bottom: 4px;"><b>lgn登录:</b> 用于教学楼等非宿舍区的有线网络认证。</li>
-                                <li><b>宿舍登出:</b> 断开宿舍有线网络连接。</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="card">
-                <h2 class="section-title">网络状态</h2>
-                <div class="net-row" style="justify-content:space-between;">
-                    <div class="net-row" style="height: 100%;">
-                        <div id="ipv4-status" class="pill" style="width: 115px;">IPv4: Unknown</div>
-                        <div id="ipv6-status" class="pill" style="width: 115px;">IPv6: Unknown</div>
-                    </div>
-                    <button data-ripple id="refresh-btn" class="btn">刷新</button>
-                </div>
-                <div class="muted" id="net-last-checked" style="margin-top:6px;">上次检查：—</div>
-            </section>
-
-            <section class="card">
-                <h2 class="section-title">设置</h2>
-                <div class="switch-row">
-                    <span>模式</span>
-                    <select id="mode-select">
-                        <option value="polling">轮询</option>
-                        <option value="detection" disabled>侦测（未实现）</option>
-                    </select>
-                </div>
-                <div class="switch-row" style="margin-top:8px;">
-                    <span>轮询间隔</span>
-                    <select id="interval-select">
-                        <option value="5000">5s</option>
-                        <option value="10000" selected>10s</option>
-                        <option value="30000">30s</option>
-                        <option value="60000">60s</option>
-                        <option value="600000">10min</option>
-                        <option value="3600000">1h</option>
-                        <option value="21600000">6h</option>
-                    </select>
-                </div>
-                <div class="switch-row" style="margin-top:8px;">
-                    <span>开机自启</span>
-                    <label class="switch" title="系统登录后自动启动本程序">
-                        <input type="checkbox" id="start-on-login-switch">
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </section>
-        </div>
-
-        <!-- Right column: Traffic + Logs (logs fill remaining height) -->
-        <div class="col-right">
-            <section class="card">
-                <h2 class="section-title">流量信息</h2>
-                <div class="traffic">
-                    <div id="traffic-pie">
-                        <span id="traffic-percent-text"></span>
-                        <span id="traffic-percent-label">已用</span>
-                    </div>
-                    <div class="legend">
-                        <div class="legend-line">
-                            <div class="legend-left">
-                                <span class="dot dot-used"></span>
-                                <span>本月已用流量</span>
-                            </div>
-                            <span id="used-traffic-status" class="net-stat">Unknown</span>
-                        </div>
-                        <div class="legend-line">
-                            <div class="legend-left">
-                                <span class="dot dot-total"></span>
-                                <span>本月套餐总量</span>
-                            </div>
-                            <span id="total-traffic-status" class="net-stat">Unknown</span>
-                        </div>
-                        <div class="legend-line">
-                            <div class="legend-left">
-                                <span class="dot" style="background: var(--success);"></span>
-                                <span>剩余余额</span>
-                            </div>
-                            <span id="balance-status" class="net-stat">Unknown</span>
-                        </div>
-                        <div id="traffic-last-updated" class="tiny">上次更新：—</div>
-                    </div>
-                </div>
-            </section>
-
-            <section class="card log-card">
-                <h2 class="section-title">运行日志</h2>
-                <textarea id="logArea" class="log" readonly></textarea>
-            </section>
-        </div>
-    </div>
+<div id="help-overlay"
+     style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center;">
+	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+			<h2 class="section-title" style="margin: 0;">登录按钮说明</h2>
+			<button id="close-help-btn" class="btn"
+			        style="padding: 4px; line-height: 1; border-radius: 1000px; aspect-ratio: 1; text-align: center">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+				     style="width: 20px; height: 20px; display: block; place-self: center">
+					<path fill="currentColor"
+					      d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+				</svg>
+			</button>
+		</div>
+		<ul style="margin: 0; padding-left: 20px; list-style-type: disc; font-weight: normal; color: var(--text);">
+			<li style="margin-bottom: 6px;"><b>手动认证一次:</b> 自动检测网络环境并尝试登录，登录后获取ipv4+ipv6。</li>
+			<li style="margin-bottom: 6px;"><b>宿舍登录:</b> 宿舍区10.21.221.98红网认证一次，登录后获取ipv4+ipv6。</li>
+			<li style="margin-bottom: 6px;"><b>wlgn登录:</b> 用于教学楼、图书馆等区域的 bjut_wifi 无线网络的ipv4登录。</li>
+			<li style="margin-bottom: 6px;"><b>lgn6仅ipv6登录:</b> 使用lgn6服务器单独为ipv6网络进行认证，通常在连接wlgn后或掉ipv6时需要。
+			</li>
+			<li style="margin-bottom: 6px;"><b>lgn双栈登录:</b> 以lgn为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。
+			</li>
+			<li style="margin-bottom: 6px;"><b>lgn6双栈登录:</b> 以lgn6为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。
+			</li>
+		</ul>
+	</div>
 </div>
 
 <script src="./utils/ripple.js"></script>
 <script>
-    const {ipcRenderer} = require('electron');
-
-    // --- DOM Elements ---
-    const usernameInput = document.getElementById('username');
-    const passwordInput = document.getElementById('password');
-    const loginBtn = document.getElementById('loginBtn');
-    const logArea = document.getElementById('logArea');
-    const statusDiv = document.getElementById('status');
-    const modeSelect = document.getElementById('mode-select');
-    const intervalSelect = document.getElementById('interval-select');
-    const autoAuthSwitch = document.getElementById('auto-auth-switch');
-    const startOnLoginSwitch = document.getElementById('start-on-login-switch');
-    const ipv4Status = document.getElementById('ipv4-status');
-    const ipv6Status = document.getElementById('ipv6-status');
-    const refreshBtn = document.getElementById('refresh-btn');
-    const usedTrafficStatus = document.getElementById('used-traffic-status');
-    const totalTrafficStatus = document.getElementById('total-traffic-status');
-    const balanceStatus = document.getElementById('balance-status');
-    const trafficLastUpdated = document.getElementById('traffic-last-updated');
-    const netLastChecked = document.getElementById('net-last-checked');
-    const trafficPie = document.getElementById('traffic-pie');
-    const trafficPercentText = document.getElementById('traffic-percent-text');
-    const trafficPercentLabel = document.getElementById('traffic-percent-label');
-    const susheLoginBtn = document.getElementById('susheLoginBtn');
-    const wlgnLoginBtn = document.getElementById('wlgnLoginBtn');
-    const lgn6LoginBtn = document.getElementById('lgn6LoginBtn');
-    const lgnLogin46Btn = document.getElementById('lgnLogin46Btn');
-    const susheLogoutBtn = document.getElementById('susheLogoutBtn');
-
-    // --- State ---
-    let isPollingEnabled = true;
-    let isAutoAuthEnabled = true;
-    let isLoginInProgress = false;
-    let pollingIntervalId = null;
-    let userHasScrolled = false;
-    let scrollTimeout = null;
-
-    // --- Utility Functions ---
-    function debounce(func, delay) {
-        let timeout;
-        return function (...args) {
-            clearTimeout(timeout);
-            timeout = setTimeout(() => func.apply(this, args), delay);
-        };
-    }
-
-    function addLog(message) {
-        const time = new Date().toLocaleTimeString();
-        logArea.value += `[${time}] ${message}\n`;
-        if (!userHasScrolled) {
-            logArea.scrollTop = logArea.scrollHeight;
-        }
-    }
-
-    function showStatus(message, isSuccess) {
-        statusDiv.textContent = message;
-        statusDiv.className = 'status ' + (isSuccess ? 'success' : 'error');
-        statusDiv.style.display = 'block';
-    }
-
-    // --- Settings & Credential Management ---
-    async function loadSettings() {
-        const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
-        if (savedInterval) intervalSelect.value = savedInterval;
-        const startOnLogin = await ipcRenderer.invoke('get-setting', 'startOnLogin');
-        if (startOnLogin) startOnLoginSwitch.checked = true;
-        await loadCredentials();
-    }
-
-    function saveCredentials() {
-        ipcRenderer.send('set-credentials', {username: usernameInput.value, password: passwordInput.value});
-    }
-
-    const debouncedSaveCredentials = debounce(saveCredentials, 800);
-
-    async function loadCredentials() {
-        addLog('Requesting saved credentials...');
-        const credentials = await ipcRenderer.invoke('get-credentials');
-        if (credentials && credentials.username) {
-            usernameInput.value = credentials.username;
-            passwordInput.value = credentials.password;
-            addLog('Saved credentials loaded.');
-        } else {
-            addLog('No saved credentials found.');
-        }
-    }
-
-    // --- Polling & Core ---
-    function setupPolling() {
-        if (pollingIntervalId) clearInterval(pollingIntervalId);
-        const intervalMs = parseInt(intervalSelect.value, 10);
-        if (isPollingEnabled) pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
-        const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
-        addLog(`Polling interval set to ${selectedOption}.`);
-    }
-
-    async function handleLogin() {
-        if (isLoginInProgress) {
-            addLog('Login already in progress, skipping.');
-            return;
-        }
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
-        if (!username || !password) {
-            showStatus('请输入学号和密码', false);
-            return;
-        }
-
-        isLoginInProgress = true;
-        const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, susheLogoutBtn];
-        buttons.forEach(btn => btn.disabled = true);
-        const oldText = loginBtn.textContent;
-        loginBtn.textContent = '认证中...';
-
-        try {
-            const result = await ipcRenderer.invoke('network-login', {username, password});
-            if (result) {
-                showStatus('认证成功！', true);
-                updateTrafficInfo();
-            } else {
-                const message = result && result.message ? result.message : '未知错误';
-                showStatus('认证失败: ' + message, false);
-            }
-        } catch (error) {
-            showStatus('认证出错: ' + error.message, false);
-        } finally {
-            buttons.forEach(btn => btn.disabled = false);
-            loginBtn.textContent = oldText;
-            isLoginInProgress = false;
-        }
-    }
-
-    async function runNetworkCheck() {
-        if (isLoginInProgress && !isPollingEnabled) return;
-        addLog('Running network status check...');
-        try {
-            const connectivity = await ipcRenderer.invoke('check-connectivity');
-            const timeString = new Date().toLocaleTimeString();
-
-            ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access ? 'OK' : 'Failed'}`;
-            ipv4Status.className = `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
-
-            ipv6Status.textContent = `IPv6: ${connectivity.ipv6Access ? 'OK' : 'Failed'}`;
-            ipv6Status.className = `pill ${connectivity.ipv6Access ? 'net-ok' : 'net-fail'}`;
-
-            netLastChecked.textContent = `上次检查：${timeString}`;
-
-            if (isAutoAuthEnabled && (!connectivity.ipv4Access || !connectivity.ipv6Access)) {
-                addLog('Internet connectivity failed. Triggering authentication attempt.');
-                handleLogin();
-            } else {
-                updateTrafficInfo();
-            }
-        } catch (error) {
-            addLog(`Network check failed: ${error.message}`);
-        }
-    }
-
-    // --- Traffic Pie Chart ---
-    function cssVar(name, fallback) {
-        return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-    }
-
-    function parseSize(str) {
-        if (!str) return NaN;
-        const s = String(str).trim().toUpperCase();
-        const m = s.match(/([\d.]+)\s*(TB|GB|MB|KB|B)?/i);
-        if (!m) return NaN;
-        const val = parseFloat(m[1]);
-        const unit = (m[2] || 'B').toUpperCase();
-        const mult = {B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4}[unit] || 1;
-        return val * mult;
-    }
-
-    function updateTrafficPie(usedBytes, totalBytes) {
-        if (!trafficPie) return;
-
-        if (!isFinite(usedBytes) || !isFinite(totalBytes) || totalBytes <= 0) {
-            trafficPie.style.setProperty('--traffic-percent', '0');
-            trafficPercentText.textContent = '—';
-            trafficPercentLabel.style.display = 'none';
-            return;
-        }
-
-        trafficPercentLabel.style.display = 'inline';
-        const ratio = Math.max(0, Math.min(1, usedBytes / totalBytes));
-        const percent = ratio * 100;
-
-        trafficPie.style.setProperty('--traffic-percent', percent);
-        trafficPercentText.textContent = `${percent.toFixed(0)}%`;
-    }
-
-    async function updateTrafficInfo() {
-        addLog('Fetching traffic info...');
-        try {
-            const trafficInfo = await ipcRenderer.invoke('get-traffic-info');
-            if (!trafficInfo) {
-                throw new Error('Received no traffic info from main process.');
-            }
-
-            usedTrafficStatus.textContent = trafficInfo.usedTraffic;
-            totalTrafficStatus.textContent = trafficInfo.totalTraffic;
-            balanceStatus.textContent = trafficInfo.balance;
-            trafficLastUpdated.textContent = `上次更新：${new Date().toLocaleTimeString()}`;
-
-            const usedBytes = parseSize(trafficInfo.usedTraffic);
-            const totalBytes = parseSize(trafficInfo.totalTraffic);
-            updateTrafficPie(usedBytes, totalBytes);
-
-        } catch (error) {
-            addLog(`Failed to fetch traffic info: ${error.message}`);
-            usedTrafficStatus.textContent = 'Unknown';
-            totalTrafficStatus.textContent = 'Unknown';
-            balanceStatus.textContent = 'Unknown';
-            trafficLastUpdated.textContent = '上次更新：—';
-            updateTrafficPie(NaN, NaN);
-        }
-    }
-
-    // --- Event Listeners ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        await loadSettings();
-        setupPolling();
-        await runNetworkCheck();
-        await updateTrafficInfo();
-
-        // --- Ripple Effect Handling ---
-        const ripple = new Ripple();
-        const rippleElements = document.querySelectorAll('[data-ripple]');
-        const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
-
-        rippleElements.forEach(element => {
-            let rippleAnimation = null; // To hold the animation object
-
-            element.addEventListener('mousedown', (event) => {
-                const color = darkMode.matches ? 'light' : 'dark';
-
-                // Create the circle element using the library's logic
-                element.style.position = 'relative';
-                element.style.overflow = 'hidden';
-                const rect = element.getBoundingClientRect();
-                const radius = ripple.findFurthestPoint(event.clientX, element.offsetWidth, rect.left, event.clientY, element.offsetHeight, rect.top);
-                const circle = document.createElement('span');
-                ripple.appyStyles(circle, color, rect, radius, event);
-                element.appendChild(circle);
-
-                // Start the "in" animation
-                rippleAnimation = circle.animate([
-                    {transform: 'scale(0)', opacity: 0.5},
-                    {transform: 'scale(1.5)', opacity: 0.5} // Stay visible
-                ], {
-                    duration: 500,
-                    easing: 'linear',
-                    fill: 'forwards' // Keep the final state
-                });
-
-                // Store the circle for the mouseup event
-                element.rippleCircle = circle;
-            });
-
-            const fadeOutRipple = (event) => {
-                if (!element.rippleCircle) return;
-
-                const circle = element.rippleCircle;
-
-                // Create a new animation to fade out
-                const fadeOutAnimation = circle.animate([
-                    {opacity: 0.5},
-                    {opacity: 0}
-                ], {
-                    duration: 250, // Faster fade out
-                    easing: 'linear',
-                    fill: 'forwards'
-                });
-
-                fadeOutAnimation.onfinish = () => {
-                    circle.remove();
-                    element.rippleCircle = null;
-                };
-
-                if (rippleAnimation) {
-                    // We don't need to cancel, just let the fade out play
-                }
-            };
-
-            element.addEventListener('mouseup', fadeOutRipple);
-            element.addEventListener('mouseleave', fadeOutRipple);
-        });
-        // ---
-
-        logArea.addEventListener('scroll', () => {
-            const isScrolledToBottom = logArea.scrollHeight - logArea.clientHeight <= logArea.scrollTop + 1;
-            if (!isScrolledToBottom) {
-                userHasScrolled = true;
-                if (scrollTimeout) clearTimeout(scrollTimeout);
-                scrollTimeout = setTimeout(() => {
-                    userHasScrolled = false;
-                }, 20000); // 20 seconds
-            } else {
-                userHasScrolled = false;
-                if (scrollTimeout) clearTimeout(scrollTimeout);
-            }
-        });
-    });
-
-    usernameInput.addEventListener('input', debouncedSaveCredentials);
-    passwordInput.addEventListener('input', debouncedSaveCredentials);
-    loginBtn.addEventListener('click', handleLogin);
-    refreshBtn.addEventListener('click', runNetworkCheck);
-
-    modeSelect.addEventListener('change', (e) => {
-        isPollingEnabled = e.target.value === 'polling';
-        addLog(`Mode changed. Polling is now ${isPollingEnabled ? 'enabled' : 'disabled'}.`);
-        setupPolling();
-    });
-
-    intervalSelect.addEventListener('change', () => {
-        ipcRenderer.send('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
-        setupPolling();
-    });
-
-    autoAuthSwitch.addEventListener('change', (e) => {
-        isAutoAuthEnabled = e.target.checked;
-        addLog(`Auto-authentication is now ${isAutoAuthEnabled ? 'enabled' : 'disabled'}.`);
-    });
-
-    startOnLoginSwitch.addEventListener('change', (e) => {
-        const enabled = e.target.checked;
-        ipcRenderer.send('set-start-on-login', enabled);
-        addLog(`Start on system start is now ${enabled ? 'enabled' : 'disabled'}.`);
-    });
-
-    susheLoginBtn.addEventListener('click', () => handleSpecificLogin('sushe-login'));
-    wlgnLoginBtn.addEventListener('click', () => handleSpecificLogin('wlgn-login'));
-    lgn6LoginBtn.addEventListener('click', () => handleSpecificLogin('lgn6-login'));
-    lgnLogin46Btn.addEventListener('click', () => handleSpecificLogin('lgn-login-46'));
-    susheLogoutBtn.addEventListener('click', () => handleSpecificLogin('sushe-logout'));
-
-    async function handleSpecificLogin(loginType) {
-        const username = usernameInput.value.trim();
-        const password = passwordInput.value.trim();
-
-        // Logout doesn't need credentials
-        if (loginType !== 'sushe-logout' && (!username || !password)) {
-            showStatus('请输入学号和密码', false);
-            return;
-        }
-
-        // Disable all buttons
-        const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, susheLogoutBtn];
-        buttons.forEach(btn => btn.disabled = true);
-
-        showStatus(`Executing ${loginType}...`, true);
-        addLog(`Executing ${loginType}...`);
-
-        try {
-            const result = await ipcRenderer.invoke(loginType, {username, password});
-            if (result && result.success) {
-                showStatus(`${result.message}`, true);
-                addLog(`${loginType} Succeeded: ${result.message}`);
-                updateTrafficInfo();
-            } else {
-                const message = result ? result.message : '未知错误';
-                showStatus(`${loginType} 失败: ${message}`, false);
-                addLog(`${loginType} Failed: ${message}`);
-            }
-        } catch (error) {
-            showStatus(`${loginType} 错误: ${error.message}`, false);
-            addLog(`${loginType} error: ${error.message}`);
-        } finally {
-            buttons.forEach(btn => btn.disabled = false);
-        }
-    }
-
-    ipcRenderer.on('log-message', (event, message) => {
-        addLog(message);
-    });
+	const {ipcRenderer} = require('electron');
+	
+	// --- DOM Elements ---
+	const usernameInput = document.getElementById('username');
+	const passwordInput = document.getElementById('password');
+	const loginBtn = document.getElementById('loginBtn');
+	const logArea = document.getElementById('logArea');
+	const statusDiv = document.getElementById('status');
+	const modeSelect = document.getElementById('mode-select');
+	const intervalSelect = document.getElementById('interval-select');
+	const autoAuthSwitch = document.getElementById('auto-auth-switch');
+	const startOnLoginSwitch = document.getElementById('start-on-login-switch');
+	const ipv4Status = document.getElementById('ipv4-status');
+	const ipv6Status = document.getElementById('ipv6-status');
+	const refreshBtn = document.getElementById('refresh-btn');
+	const usedTrafficStatus = document.getElementById('used-traffic-status');
+	const totalTrafficStatus = document.getElementById('total-traffic-status');
+	const balanceStatus = document.getElementById('balance-status');
+	const trafficLastUpdated = document.getElementById('traffic-last-updated');
+	const netLastChecked = document.getElementById('net-last-checked');
+	const trafficPie = document.getElementById('traffic-pie');
+	const trafficPercentText = document.getElementById('traffic-percent-text');
+	const trafficPercentLabel = document.getElementById('traffic-percent-label');
+	const susheLoginBtn = document.getElementById('susheLoginBtn');
+	const wlgnLoginBtn = document.getElementById('wlgnLoginBtn');
+	const lgn6LoginBtn = document.getElementById('lgn6LoginBtn');
+	const lgnLogin46Btn = document.getElementById('lgnLogin46Btn');
+	const lgn6Login46Btn = document.getElementById('lgn6Login46Btn');
+	const helpBtn = document.getElementById('helpBtn');
+	const helpOverlay = document.getElementById('help-overlay');
+	const closeHelpBtn = document.getElementById('close-help-btn');
+	
+	// --- State ---
+	let isPollingEnabled = true;
+	let isAutoAuthEnabled = true;
+	let isLoginInProgress = false;
+	let pollingIntervalId = null;
+	let userHasScrolled = false;
+	let scrollTimeout = null;
+	
+	// --- Utility Functions ---
+	function debounce(func, delay) {
+		let timeout;
+		return function (...args) {
+			clearTimeout(timeout);
+			timeout = setTimeout(() => func.apply(this, args), delay);
+		};
+	}
+	
+	function addLog(message) {
+		const time = new Date().toLocaleTimeString();
+		logArea.value += `[${time}] ${message}\n`;
+		if (!userHasScrolled) {
+			logArea.scrollTop = logArea.scrollHeight;
+		}
+	}
+	
+	function showStatus(message, isSuccess) {
+		statusDiv.textContent = message;
+		statusDiv.className = 'status ' + (isSuccess ? 'success' : 'error');
+		statusDiv.style.display = 'block';
+	}
+	
+	// --- Settings & Credential Management ---
+	async function loadSettings() {
+		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
+		if (savedInterval) intervalSelect.value = savedInterval;
+		const startOnLogin = await ipcRenderer.invoke('get-setting', 'startOnLogin');
+		if (startOnLogin) startOnLoginSwitch.checked = true;
+		await loadCredentials();
+	}
+	
+	function saveCredentials() {
+		ipcRenderer.send('set-credentials', {username: usernameInput.value, password: passwordInput.value});
+	}
+	
+	const debouncedSaveCredentials = debounce(saveCredentials, 800);
+	
+	async function loadCredentials() {
+		addLog('Requesting saved credentials...');
+		const credentials = await ipcRenderer.invoke('get-credentials');
+		if (credentials && credentials.username) {
+			usernameInput.value = credentials.username;
+			passwordInput.value = credentials.password;
+			addLog('Saved credentials loaded.');
+		} else {
+			addLog('No saved credentials found.');
+		}
+	}
+	
+	// --- Polling & Core ---
+	function setupPolling() {
+		if (pollingIntervalId) clearInterval(pollingIntervalId);
+		const intervalMs = parseInt(intervalSelect.value, 10);
+		if (isPollingEnabled) pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
+		const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
+		addLog(`Polling interval set to ${selectedOption}.`);
+	}
+	
+	async function handleLogin() {
+		if (isLoginInProgress) {
+			addLog('Login already in progress, skipping.');
+			return;
+		}
+		const username = usernameInput.value.trim();
+		const password = passwordInput.value.trim();
+		if (!username || !password) {
+			showStatus('请输入学号和密码', false);
+			return;
+		}
+		
+		isLoginInProgress = true;
+		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
+		buttons.forEach(btn => btn.disabled = true);
+		const oldText = loginBtn.textContent;
+		loginBtn.textContent = '认证中...';
+		
+		try {
+			const result = await ipcRenderer.invoke('network-login', {username, password});
+			if (result) {
+				showStatus('认证成功！', true);
+				updateTrafficInfo();
+			} else {
+				const message = result && result.message ? result.message : '未知错误';
+				showStatus('认证失败: ' + message, false);
+			}
+		} catch (error) {
+			showStatus('认证出错: ' + error.message, false);
+		} finally {
+			buttons.forEach(btn => btn.disabled = false);
+			loginBtn.textContent = oldText;
+			isLoginInProgress = false;
+		}
+	}
+	
+	async function runNetworkCheck() {
+		if (isLoginInProgress && !isPollingEnabled) return;
+		addLog('Running network status check...');
+		try {
+			const connectivity = await ipcRenderer.invoke('check-connectivity');
+			const timeString = new Date().toLocaleTimeString();
+			
+			ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access ? 'OK' : 'Failed'}`;
+			ipv4Status.className = `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
+			
+			ipv6Status.textContent = `IPv6: ${connectivity.ipv6Access ? 'OK' : 'Failed'}`;
+			ipv6Status.className = `pill ${connectivity.ipv6Access ? 'net-ok' : 'net-fail'}`;
+			
+			netLastChecked.textContent = `上次检查：${timeString}`;
+			
+			if (isAutoAuthEnabled && (!connectivity.ipv4Access || !connectivity.ipv6Access)) {
+				addLog('Internet connectivity failed. Triggering authentication attempt.');
+				handleLogin();
+			} else {
+				updateTrafficInfo();
+			}
+		} catch (error) {
+			addLog(`Network check failed: ${error.message}`);
+		}
+	}
+	
+	// --- Traffic Pie Chart ---
+	function cssVar(name, fallback) {
+		return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+	}
+	
+	function parseSize(str) {
+		if (!str) return NaN;
+		const s = String(str).trim().toUpperCase();
+		const m = s.match(/([\d.]+)\s*(TB|GB|MB|KB|B)?/i);
+		if (!m) return NaN;
+		const val = parseFloat(m[1]);
+		const unit = (m[2] || 'B').toUpperCase();
+		const mult = {B: 1, KB: 1024, MB: 1024 ** 2, GB: 1024 ** 3, TB: 1024 ** 4}[unit] || 1;
+		return val * mult;
+	}
+	
+	function updateTrafficPie(usedBytes, totalBytes) {
+		if (!trafficPie) return;
+		
+		if (!isFinite(usedBytes) || !isFinite(totalBytes) || totalBytes <= 0) {
+			trafficPie.style.setProperty('--traffic-percent', '0');
+			trafficPercentText.textContent = '—';
+			trafficPercentLabel.style.display = 'none';
+			return;
+		}
+		
+		trafficPercentLabel.style.display = 'inline';
+		const ratio = Math.max(0, Math.min(1, usedBytes / totalBytes));
+		const percent = ratio * 100;
+		
+		trafficPie.style.setProperty('--traffic-percent', percent);
+		trafficPercentText.textContent = `${percent.toFixed(0)}%`;
+	}
+	
+	async function updateTrafficInfo() {
+		addLog('Fetching traffic info...');
+		try {
+			const trafficInfo = await ipcRenderer.invoke('get-traffic-info');
+			if (!trafficInfo) {
+				throw new Error('Received no traffic info from main process.');
+			}
+			
+			usedTrafficStatus.textContent = trafficInfo.usedTraffic;
+			totalTrafficStatus.textContent = trafficInfo.totalTraffic;
+			balanceStatus.textContent = trafficInfo.balance;
+			trafficLastUpdated.textContent = `上次更新：${new Date().toLocaleTimeString()}`;
+			
+			const usedBytes = parseSize(trafficInfo.usedTraffic);
+			const totalBytes = parseSize(trafficInfo.totalTraffic);
+			updateTrafficPie(usedBytes, totalBytes);
+			
+		} catch (error) {
+			addLog(`Failed to fetch traffic info: ${error.message}`);
+			usedTrafficStatus.textContent = 'Unknown';
+			totalTrafficStatus.textContent = 'Unknown';
+			balanceStatus.textContent = 'Unknown';
+			trafficLastUpdated.textContent = '上次更新：—';
+			updateTrafficPie(NaN, NaN);
+		}
+	}
+	
+	// --- Event Listeners ---
+	document.addEventListener('DOMContentLoaded', async () => {
+		await loadSettings();
+		setupPolling();
+		await runNetworkCheck();
+		await updateTrafficInfo();
+		
+		// --- Ripple Effect Handling ---
+		const ripple = new Ripple();
+		const rippleElements = document.querySelectorAll('[data-ripple]');
+		const darkMode = window.matchMedia('(prefers-color-scheme: dark)');
+		
+		rippleElements.forEach(element => {
+			let rippleAnimation = null; // To hold the animation object
+			
+			element.addEventListener('mousedown', (event) => {
+				const color = darkMode.matches ? 'light' : 'dark';
+				
+				// Create the circle element using the library's logic
+				element.style.position = 'relative';
+				element.style.overflow = 'hidden';
+				const rect = element.getBoundingClientRect();
+				const radius = ripple.findFurthestPoint(event.clientX, element.offsetWidth, rect.left, event.clientY, element.offsetHeight, rect.top);
+				const circle = document.createElement('span');
+				ripple.appyStyles(circle, color, rect, radius, event);
+				element.appendChild(circle);
+				
+				// Start the "in" animation
+				rippleAnimation = circle.animate([
+					{transform: 'scale(0)', opacity: 0.5},
+					{transform: 'scale(1.5)', opacity: 0.5} // Stay visible
+				], {
+					duration: 500,
+					easing: 'linear',
+					fill: 'forwards' // Keep the final state
+				});
+				
+				// Store the circle for the mouseup event
+				element.rippleCircle = circle;
+			});
+			
+			const fadeOutRipple = (event) => {
+				if (!element.rippleCircle) return;
+				
+				const circle = element.rippleCircle;
+				
+				// Create a new animation to fade out
+				const fadeOutAnimation = circle.animate([
+					{opacity: 0.5},
+					{opacity: 0}
+				], {
+					duration: 250, // Faster fade out
+					easing: 'linear',
+					fill: 'forwards'
+				});
+				
+				fadeOutAnimation.onfinish = () => {
+					circle.remove();
+					element.rippleCircle = null;
+				};
+				
+				if (rippleAnimation) {
+					// We don't need to cancel, just let the fade out play
+				}
+			};
+			
+			element.addEventListener('mouseup', fadeOutRipple);
+			element.addEventListener('mouseleave', fadeOutRipple);
+		});
+		// ---
+		
+		logArea.addEventListener('scroll', () => {
+			const isScrolledToBottom = logArea.scrollHeight - logArea.clientHeight <= logArea.scrollTop + 1;
+			if (!isScrolledToBottom) {
+				userHasScrolled = true;
+				if (scrollTimeout) clearTimeout(scrollTimeout);
+				scrollTimeout = setTimeout(() => {
+					userHasScrolled = false;
+				}, 20000); // 20 seconds
+			} else {
+				userHasScrolled = false;
+				if (scrollTimeout) clearTimeout(scrollTimeout);
+			}
+		});
+	});
+	
+	usernameInput.addEventListener('input', debouncedSaveCredentials);
+	passwordInput.addEventListener('input', debouncedSaveCredentials);
+	loginBtn.addEventListener('click', handleLogin);
+	refreshBtn.addEventListener('click', runNetworkCheck);
+	
+	modeSelect.addEventListener('change', (e) => {
+		isPollingEnabled = e.target.value === 'polling';
+		addLog(`Mode changed. Polling is now ${isPollingEnabled ? 'enabled' : 'disabled'}.`);
+		setupPolling();
+	});
+	
+	intervalSelect.addEventListener('change', () => {
+		ipcRenderer.send('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
+		setupPolling();
+	});
+	
+	autoAuthSwitch.addEventListener('change', (e) => {
+		isAutoAuthEnabled = e.target.checked;
+		addLog(`Auto-authentication is now ${isAutoAuthEnabled ? 'enabled' : 'disabled'}.`);
+	});
+	
+	startOnLoginSwitch.addEventListener('change', (e) => {
+		const enabled = e.target.checked;
+		ipcRenderer.send('set-start-on-login', enabled);
+		addLog(`Start on system start is now ${enabled ? 'enabled' : 'disabled'}.`);
+	});
+	
+	susheLoginBtn.addEventListener('click', () => handleSpecificLogin('sushe-login'));
+	wlgnLoginBtn.addEventListener('click', () => handleSpecificLogin('wlgn-login'));
+	lgn6LoginBtn.addEventListener('click', () => handleSpecificLogin('lgn6-login'));
+	lgnLogin46Btn.addEventListener('click', () => handleSpecificLogin('lgn-login-46'));
+	lgn6Login46Btn.addEventListener('click', () => handleSpecificLogin('lgn6-login-46'));
+	
+	helpBtn.addEventListener('click', () => {
+		helpOverlay.style.display = 'flex';
+	});
+	
+	closeHelpBtn.addEventListener('click', () => {
+		helpOverlay.style.display = 'none';
+	});
+	
+	helpOverlay.addEventListener('click', (e) => {
+		if (e.target === helpOverlay) {
+			helpOverlay.style.display = 'none';
+		}
+	});
+	
+	
+	async function handleSpecificLogin(loginType) {
+		const username = usernameInput.value.trim();
+		const password = passwordInput.value.trim();
+		
+		// Logout doesn't need credentials
+		if (loginType !== 'sushe-logout' && (!username || !password)) {
+			showStatus('请输入学号和密码', false);
+			return;
+		}
+		
+		// Disable all buttons
+		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
+		buttons.forEach(btn => btn.disabled = true);
+		
+		showStatus(`Executing ${loginType}...`, true);
+		addLog(`Executing ${loginType}...`);
+		
+		try {
+			const result = await ipcRenderer.invoke(loginType, {username, password});
+			if (result && result.success) {
+				showStatus(`${result.message}`, true);
+				addLog(`${loginType} Succeeded: ${result.message}`);
+				updateTrafficInfo();
+			} else {
+				const message = result ? result.message : '未知错误';
+				showStatus(`${loginType} 失败: ${message}`, false);
+				addLog(`${loginType} Failed: ${message}`);
+			}
+		} catch (error) {
+			showStatus(`${loginType} 错误: ${error.message}`, false);
+			addLog(`${loginType} error: ${error.message}`);
+		} finally {
+			buttons.forEach(btn => btn.disabled = false);
+		}
+	}
+	
+	ipcRenderer.on('log-message', (event, message) => {
+		addLog(message);
+	});
 </script>
 </body>
 </html>
