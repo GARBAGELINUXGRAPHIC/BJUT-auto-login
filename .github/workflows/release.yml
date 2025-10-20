@@ -1,0 +1,62 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # We need to fetch all history and tags for versioning
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Extract version from commit message
+        id: get_version
+        run: |
+          VERSION=$(echo "${{ github.event.head_commit.message }}" | grep -oP 'v\d+\.\d+\.\d+' | head -n 1)
+          if [ -z "$VERSION" ]; then
+            echo "No version found in commit message. Skipping release."
+            exit 0
+          fi
+          echo "::set-output name=VERSION::$VERSION"
+
+      - name: Update package.json and create tag
+        if: steps.get_version.outputs.VERSION
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          npm version ${{ steps.get_version.outputs.VERSION }} --no-git-tag-version
+          git add package.json package-lock.json
+          git commit --amend --no-edit
+          git tag -f ${{ steps.get_version.outputs.VERSION }}
+
+      - name: Build application
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        if: steps.get_version.outputs.VERSION
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          files: |
+            dist/*.dmg
+            dist/*.exe
+            dist/*.AppImage
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
