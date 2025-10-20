@@ -47,9 +47,11 @@ jobs:
           git add package.json package-lock.json
           git commit --amend --no-edit
           git tag -f ${{ steps.get_version.outputs.VERSION }}
+          git push origin HEAD:main
           git push origin ${{ steps.get_version.outputs.VERSION }}
 
       - name: Build application
+        if: steps.get_version.outputs.VERSION
         run: npm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
