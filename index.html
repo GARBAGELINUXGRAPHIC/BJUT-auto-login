@@ -869,6 +869,7 @@
 			} else {
 				updateTrafficInfo();
 			}
+            return connectivity;
 		} catch (error) {
 			addLog(`Network check failed: ${error.message}`);
 		}
@@ -940,7 +941,7 @@
 		await loadSettings();
 		setupPolling();
 		await runNetworkCheck();
-		await updateTrafficInfo();
+		await ipcRenderer.invoke('check-updates'); // even if no network, it will auto retry after 1h.
 		
 		// --- Ripple Effect Handling ---
 		const ripple = new Ripple();
