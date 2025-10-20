@@ -43,6 +43,7 @@ jobs:
           git add package.json package-lock.json
           git commit --amend --no-edit
           git tag -f ${{ steps.get_version.outputs.VERSION }}
+          git push origin ${{ steps.get_version.outputs.VERSION }}
 
       - name: Build application
         run: npm run build
@@ -60,3 +61,10 @@ jobs:
             dist/*.AppImage
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify backend of new release
+        if: steps.get_version.outputs.VERSION
+        run: |
+          curl -X POST https://ipv4.quitsense.cn:10443/api/bjutautologin/checkNewRelease \
+            -H "Content-Type: application/json" \
+            -d '${{ toJSON(github.event) }}'
