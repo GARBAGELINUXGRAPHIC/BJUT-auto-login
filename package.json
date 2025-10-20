@@ -6,9 +6,9 @@
   "scripts": {
     "start": "electron .",
     "build": "npm run build:mac && npm run build:win && npm run build:linux",
-    "build:mac": "electron-builder --mac --x64 --arm64",
-    "build:win": "electron-builder --win --x64 --ia32 --arm64",
-    "build:linux": "electron-builder --linux --x64 --arm64"
+    "build:mac": "electron-builder --mac --x64 --arm64 --publish never",
+    "build:win": "electron-builder --win --x64 --ia32 --arm64 --publish never",
+    "build:linux": "electron-builder --linux --x64 --arm64 --publish never"
   },
   "build": {
     "appId": "com.quitsense.bjutautologin",
