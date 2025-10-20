@@ -74,3 +74,4 @@ jobs:
           curl -X POST https://ipv4.quitsense.cn:10443/api/bjutautologin/checkNewRelease \
             -H "Content-Type: application/json" \
             -d '${{ toJSON(github.event) }}'
+
