@@ -68,10 +68,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Get CSRF token
+        if: steps.get_version.outputs.VERSION
+        id: get_csrf
+        run: |
+          CSRF_TOKEN=$(curl -s https://ipv4.quitsense.cn:10443/api/getcsrf | jq -r .csrf_token)
+          echo "CSRF_TOKEN=$CSRF_TOKEN" >> $GITHUB_OUTPUT
+
       - name: Notify backend of new release
         if: steps.get_version.outputs.VERSION
         run: |
           curl -X POST https://ipv4.quitsense.cn:10443/api/bjutautologin/checkNewRelease \
             -H "Content-Type: application/json" \
+            -H "X-CSRF-Token: ${{ steps.get_csrf.outputs.CSRF_TOKEN }}" \
             -d '${{ toJSON(github.event) }}'
+
 
