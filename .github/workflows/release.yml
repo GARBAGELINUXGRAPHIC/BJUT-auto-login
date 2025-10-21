@@ -68,32 +68,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get CSRF token
-        if: steps.get_version.outputs.VERSION
-        id: get_csrf
-        run: |
-          echo "Fetching CSRF token from API..."
-          CSRF_RESPONSE=$(curl -s https://ipv4.quitsense.cn:10443/api/getcsrf)
-          echo "CSRF API Response: $CSRF_RESPONSE"
-          
-          CSRF_TOKEN=$(echo "$CSRF_RESPONSE" | jq -r .csrf)
-          echo "Extracted CSRF Token: $CSRF_TOKEN"
-          
-          if [ -z "$CSRF_TOKEN" ] || [ "$CSRF_TOKEN" = "null" ]; then
-            echo "::error::Failed to get valid CSRF token from API"
-            echo "::error::Response was: $CSRF_RESPONSE"
-            exit 1
-          fi
-          
-          echo "CSRF_TOKEN=$CSRF_TOKEN" >> $GITHUB_OUTPUT
-
       - name: Notify backend of new release
         if: steps.get_version.outputs.VERSION
         run: |
-          RESPONSE=$(curl -s -X POST https://ipv4.quitsense.cn:10443/api/bjutautologin/checkNewRelease \
-            -H "Content-Type: application/json" \
-            -H "X-CSRF-Token: ${{ steps.get_csrf.outputs.CSRF_TOKEN }}" \
-            -d '${{ toJSON(github.event) }}')
+          RESPONSE=$(curl -s https://ipv4.quitsense.cn:10443/api/bjutautologin/checkNewRelease)
           
           echo "API Response: $RESPONSE"
           
@@ -101,7 +79,6 @@ jobs:
           if [ "$SUCCESS" != "true" ]; then
             MESSAGE=$(echo "$RESPONSE" | jq -r '.message')
             echo "::warning::Backend notification failed: $MESSAGE"
-            echo "::warning::CSRF Token used: ${{ steps.get_csrf.outputs.CSRF_TOKEN }}"
             exit 1
           fi
           

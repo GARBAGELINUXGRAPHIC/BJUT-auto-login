@@ -237,17 +237,18 @@ if (!gotTheLock) {
 			if (tagstr.at(0).toLowerCase() === 'v') { // remove v at front
 				tagstr = tagstr.substring(1);
 			}
-			tagstr = tagstr.substring(0, 5); // X.Y.Z just like getVersion()
+			// Remove -, _, and spaces from version string (e.g., "0.19.15-alpha" -> "0.19.15")
+			tagstr = tagstr.replace(/[-_ ]/g, '');
 			
 			// compare
 			const currentTags = app.getVersion().split('.');
 			const latestTags = tagstr.split('.');
 			let need_update = false;
 			for (let i = 0; i < Math.min(latestTags.length, currentTags.length); ++i) {
-				if (latestTags[i] > currentTags[i]) {
+				if (parseInt(latestTags[i]) > parseInt(currentTags[i])) {
 					need_update = true;
 					break;
-				} else if (latestTags[i] < currentTags[i]) { // wtf...
+				} else if (parseInt(latestTags[i]) < parseInt(currentTags[i])) { // wtf...
 					eventBus.emit('log', 'It seems that latest Tag is SMALLER than current Tag? Am I in future?(' + tagstr + ' < ' + app.getVersion() + ')');
 					return;
 				}
