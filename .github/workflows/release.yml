@@ -38,6 +38,22 @@ jobs:
           VERSION=$(echo "$VERSION" | tr '[:upper:]' '[:lower:]')
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
+      - name: Get previous tag
+        id: get_prev_tag
+        if: steps.get_version.outputs.VERSION
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ steps.get_version.outputs.VERSION }}^ || echo "")
+          echo "PREV_TAG=$PREV_TAG" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: generate_changelog
+        if: steps.get_version.outputs.VERSION
+        run: |
+          CHANGELOG=$(git log ${{ steps.get_prev_tag.outputs.PREV_TAG }}..${{ steps.get_version.outputs.VERSION }} --pretty=format:"* %s (%h)")
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Update package.json and create tag
         if: steps.get_version.outputs.VERSION
         run: |
@@ -61,6 +77,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.get_version.outputs.VERSION }}
+          body: |-
+            ${{ steps.generate_changelog.outputs.CHANGELOG }}
           files: |
             dist/*.dmg
             dist/*.exe
