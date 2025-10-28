@@ -50,9 +50,9 @@ jobs:
         if: steps.get_version.outputs.VERSION
         run: |
           if [ -z "${{ steps.get_prev_tag.outputs.PREV_TAG }}" ]; then
-            CHANGELOG=$(git log ${{ steps.get_version.outputs.VERSION }} --pretty=format:"* %s (%h)")
+            CHANGELOG=$(git log HEAD --pretty=format:"* %s (%h)")
           else
-            CHANGELOG=$(git log ${{ steps.get_prev_tag.outputs.PREV_TAG }}..${{ steps.get_version.outputs.VERSION }} --pretty=format:"* %s (%h)")
+            CHANGELOG=$(git log ${{ steps.get_prev_tag.outputs.PREV_TAG }}..HEAD --pretty=format:"* %s (%h)")
           fi
           echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
           echo "$CHANGELOG" >> $GITHUB_OUTPUT
