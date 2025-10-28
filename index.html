@@ -490,6 +490,17 @@
 			}
 		}
 		
+		@keyframes overlay-disappear {
+			from {
+				opacity: 1;
+				transform: scale(1);
+			}
+			to {
+				opacity: 0;
+				transform: scale(0.95);
+			}
+		}
+		
 		/* Custom Overlay Scrollbar */
 		::-webkit-scrollbar {
 			width: 8px;
@@ -685,7 +696,7 @@
 </div>
 
 <div id="help-overlay"
-     style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0.5); z-index: 999; align-items: center; justify-content: center;">
+     style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
 	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
 			<h2 class="section-title" style="margin: 0;">登录按钮说明</h2>
@@ -1058,15 +1069,29 @@
 	
 	helpBtn.addEventListener('click', () => {
 		helpOverlay.style.display = 'flex';
+		const card = helpOverlay.querySelector('.card');
+		card.style.animation = 'overlay-appear .2s ease-out forwards';
+		// Trigger background fade-in
+		setTimeout(() => {
+			helpOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		}, 10);
 	});
 	
-	closeHelpBtn.addEventListener('click', () => {
-		helpOverlay.style.display = 'none';
-	});
+	function closeHelpDialog() {
+		const card = helpOverlay.querySelector('.card');
+		card.style.animation = 'overlay-disappear .2s ease-out forwards';
+		// Trigger background fade-out
+		helpOverlay.style.backgroundColor = 'rgba(0,0,0,0)';
+		setTimeout(() => {
+			helpOverlay.style.display = 'none';
+		}, 200); // Match animation duration
+	}
+	
+	closeHelpBtn.addEventListener('click', closeHelpDialog);
 	
 	helpOverlay.addEventListener('click', (e) => {
 		if (e.target === helpOverlay) {
-			helpOverlay.style.display = 'none';
+			closeHelpDialog();
 		}
 	});
 	

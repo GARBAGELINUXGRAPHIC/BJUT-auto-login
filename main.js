@@ -48,7 +48,7 @@ if (!gotTheLock) {
 	function createWindow() {
 		mainWindow = new BrowserWindow({
 			width: 900,
-			height: 750,
+			height: 700,
 			frame: true,
 			webPreferences: {
 				nodeIntegration: true,
