@@ -22,6 +22,9 @@
 			--radius: 12px;
 			--radius-xs: 8px;
 			--isdark: 1; /* true */
+			
+			/* Transition duration for theme changes */
+			--theme-transition: 1s;
 		}
 		
 		@media (prefers-color-scheme: light) {
@@ -39,7 +42,8 @@
 		}
 		
 		* {
-			box-sizing: border-box
+			box-sizing: border-box;
+			transition: var(--theme-transition);
 		}
 		
 		html, body {
@@ -55,6 +59,7 @@
 			/*font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans SC", sans-serif;*/
 			font: 13px Arial, sans-serif;
 			font-weight: 600;
+			transition: background var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.wrapper {
@@ -67,7 +72,8 @@
 			display: flex;
 			align-items: center;
 			gap: 10px;
-			margin-bottom: 12px
+			margin-bottom: 12px;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		.logo {
@@ -111,11 +117,12 @@
 		}
 		
 		.card {
-			background: linear-gradient(180deg, var(--card), var(--surface));
+			background: var(--card);
 			border: 1px solid var(--border);
 			border-radius: var(--radius);
 			box-shadow: var(--shadow);
 			padding: 12px;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, box-shadow var(--theme-transition) ease;
 		}
 		
 		.section-title {
@@ -125,7 +132,8 @@
 			letter-spacing: .2px;
 			display: flex;
 			align-items: center;
-			gap: 8px
+			gap: 8px;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		.section-title::before {
@@ -140,7 +148,7 @@
 		.row-2 {
 			display: grid;
 			grid-template-columns:1fr 1fr;
-			gap: 10px
+			gap: 10px;
 		}
 		
 		@media (max-width: 760px) {
@@ -157,12 +165,14 @@
 		.label {
 			font-weight: 600;
 			font-size: 12px;
-			color: var(--muted)
+			color: var(--muted);
+			transition: color var(--theme-transition) ease;
 		}
 		
 		.input-wrapper {
 			position: relative;
 			border-radius: var(--radius-xs);
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease;
 		}
 		
 		.input {
@@ -174,11 +184,12 @@
 			color: var(--text);
 			background: rgba(255, 255, 255, .06);
 			outline: none;
-			transition: border-color .2s, box-shadow .2s, background .2s
+			transition: border-color .2s, box-shadow .2s, background .2s, color var(--theme-transition) ease
 		}
 		
 		.input::placeholder {
-			color: var(--muted)
+			color: var(--muted);
+			transition: color var(--theme-transition) ease;
 		}
 		
 		.input:hover {
@@ -203,7 +214,7 @@
 			cursor: pointer;
 			width: auto;
 			font-size: 13px;
-			transition: border-color .2s, box-shadow .2s, opacity .2s
+			transition: border-color .2s, box-shadow .2s, opacity .2s, background var(--theme-transition) ease, color var(--theme-transition) ease
 		}
 		
 		.btn:hover {
@@ -224,7 +235,8 @@
 			background: rgba(255, 255, 255, .03);
 			font-weight: 600;
 			text-align: center;
-			font-size: 13px
+			font-size: 13px;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		/* Switch */
@@ -247,7 +259,7 @@
 			cursor: pointer;
 			background: #3b3b3b;
 			border-radius: 999px;
-			transition: background .25s;
+			transition: background .25s, box-shadow var(--theme-transition) ease;
 			box-shadow: inset 0 0 0 1px var(--border)
 		}
 		
@@ -276,14 +288,14 @@
 		
 		/* Settings compact rows */
 		.switch-row {
+			gap:6px; padding: 4px 10px; height: 38px;
 			display: grid;
 			grid-template-columns:1fr auto;
-			gap: 10px;
 			align-items: center;
-			padding: 8px 10px;
 			border: 1px solid var(--border);
 			border-radius: var(--radius-xs);
 			background: rgba(255, 255, 255, .06);
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease;
 		}
 		
 		.switch-row select:hover {
@@ -307,6 +319,7 @@
 			appearance: none;
 			-webkit-appearance: none;
 			-moz-appearance: none;
+			transition: background var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.switch-row select:focus {
@@ -335,13 +348,15 @@
 			border: 1px solid var(--border);
 			background: rgba(255, 255, 255, .06);
 			font-weight: 700;
-			font-size: 12px
+			font-size: 12px;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.muted {
 			color: var(--muted);
 			font-size: 12px;
 			text-align: center;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		/* Traffic card (compact) */
@@ -373,7 +388,8 @@
 			border: 1px dashed var(--border);
 			border-radius: var(--radius-xs);
 			background: rgba(255, 255, 255, .06);
-			font-size: 13px
+			font-size: 13px;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease;
 		}
 		
 		.legend-left {
@@ -386,7 +402,8 @@
 			width: 10px;
 			height: 10px;
 			border-radius: 2px;
-			background: var(--ring)
+			background: var(--ring);
+			transition: background var(--theme-transition) ease;
 		}
 		
 		.dot-used {
@@ -401,6 +418,7 @@
 			font-size: 12px;
 			color: var(--muted);
 			text-align: center;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		@property --traffic-percent {
@@ -420,7 +438,7 @@
 			flex-direction: column;
 			justify-content: center;
 			align-items: center;
-			transition: --traffic-percent 0.5s ease-out;
+			transition: var(--theme-transition);
 		}
 		
 		#traffic-pie::before {
@@ -433,6 +451,7 @@
 			height: calc(100% - 36px);
 			background: var(--surface);
 			border-radius: 50%;
+			transition: background var(--theme-transition) ease;
 		}
 		
 		#traffic-pie > span {
@@ -444,11 +463,13 @@
 			color: var(--text);
 			font-size: 18px;
 			font-weight: 700;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		#traffic-percent-label {
 			color: var(--muted);
 			font-size: 12px;
+			transition: color var(--theme-transition) ease;
 		}
 		
 		/* Logs card fills remaining height */
@@ -473,6 +494,7 @@
 			white-space: pre-wrap;
 			box-shadow: inset 0 6px 16px rgba(0, 0, 0, .22);
 			resize: none;
+			transition: background var(--theme-transition) ease, color var(--theme-transition) ease, border-color var(--theme-transition) ease;
 		}
 		
 		.log:focus {
@@ -533,25 +555,29 @@
 		.success {
 			background: rgba(34, 197, 94, .10);
 			border-color: rgba(34, 197, 94, .35);
-			color: #16a34a
+			color: #16a34a;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.error {
 			background: rgba(239, 68, 68, .10);
 			border-color: rgba(239, 68, 68, .35);
-			color: #dc2626
+			color: #dc2626;
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.net-ok {
 			color: var(--success);
 			border-color: rgba(34, 197, 94, .35);
-			background: rgba(34, 197, 94, .08)
+			background: rgba(34, 197, 94, .08);
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 		
 		.net-fail {
 			color: var(--danger);
 			border-color: rgba(239, 68, 68, .35);
-			background: rgba(239, 68, 68, .08)
+			background: rgba(239, 68, 68, .08);
+			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
 	</style>
 </head>
@@ -592,8 +618,8 @@
 						</div>
 					</div>
 				</div>
-				
-				<div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
+				<hr style="opacity: 0.1; margin-top: 10px">
+				<div class="row-2" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
 					<button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
 					<button data-ripple id="wlgnLoginBtn" class="btn">wlgn登录</button>
 					<button data-ripple id="lgn6LoginBtn" class="btn">lgn6仅ipv6登录</button>
@@ -622,31 +648,55 @@
 			
 			<section class="card">
 				<h2 class="section-title">设置</h2>
-				<div class="switch-row">
-					<span>模式</span>
-					<select id="mode-select">
-						<option value="polling">轮询</option>
-						<option value="detection" disabled>侦测（未实现）</option>
-					</select>
+				<div class="row-2" style="margin-top:8px; height: 38px;">
+					<div class="switch-row" style="height: 38px;">
+						<span>模式</span>
+						<select id="mode-select">
+							<option value="polling">轮询</option>
+							<option value="detection" disabled>侦测（未实现）</option>
+						</select>
+					</div>
+					<div class="switch-row" style="height: 38px;">
+						<span>轮询间隔</span>
+						<select id="interval-select">
+							<option value="5000">5s</option>
+							<option value="10000" selected>10s</option>
+							<option value="30000">30s</option>
+							<option value="60000">60s</option>
+							<option value="600000">10min</option>
+							<option value="3600000">1h</option>
+							<option value="21600000">6h</option>
+						</select>
+					</div>
 				</div>
-				<div class="switch-row" style="margin-top:8px;">
-					<span>轮询间隔</span>
-					<select id="interval-select">
-						<option value="5000">5s</option>
-						<option value="10000" selected>10s</option>
-						<option value="30000">30s</option>
-						<option value="60000">60s</option>
-						<option value="600000">10min</option>
-						<option value="3600000">1h</option>
-						<option value="21600000">6h</option>
-					</select>
+				<div class="row-2" style="margin-top:8px; height: 38px;">
+					<div class="switch-row" style="height: 38px;">
+						<span>日志等级</span>
+						<select id="log-level-select">
+							<option value="debug" selected>调试</option>
+							<option value="info">信息</option>
+							<option value="warn">警告</option>
+							<option value="error">错误</option>
+						</select>
+					</div>
+					<div class="switch-row" style="height: 38px;">
+						<span>主题</span>
+						<select id="theme-select">
+							<option value="auto" selected>自动</option>
+							<option value="light">浅色</option>
+							<option value="dark">深色</option>
+						</select>
+					</div>
 				</div>
-				<div class="switch-row" style="margin-top:8px;">
-					<span>开机自启</span>
-					<label class="switch" title="系统登录后自动启动">
-						<input type="checkbox" id="start-on-login-switch">
-						<span class="slider"></span>
-					</label>
+				<div class="row-2" style="margin-top:8px; height: 38px;">
+					<button data-ripple id="check-updates-btn" class="btn" style="height: 100%;">检查更新</button>
+					<div class="switch-row">
+						<span>开机自启</span>
+						<label class="switch" title="系统登录后自动启动">
+							<input type="checkbox" id="start-on-login-switch">
+							<span class="slider"></span>
+						</label>
+					</div>
 				</div>
 			</section>
 		</div>
@@ -688,7 +738,10 @@
 			</section>
 			
 			<section class="card log-card">
-				<h2 class="section-title">运行日志</h2>
+					<div style="display: flex; gap: 10px;">
+						<h2 class="section-title">运行日志</h2>
+						<button data-ripple class="btn" style="color: var(--muted); border: 1px solid var(--muted); padding: 0 4px; margin: 0; font-size: 10px; height: 18px; margin-top: -0.5px" onclick="document.getElementById('logArea').value = ''">清空</button>
+					</div>
 				<textarea id="logArea" class="log" readonly></textarea>
 			</section>
 		</div>
@@ -700,7 +753,7 @@
 	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
 			<h2 class="section-title" style="margin: 0;">登录按钮说明</h2>
-			<button id="close-help-btn" class="btn"
+			<button data-ripple id="close-help-btn" class="btn"
 			        style="padding: 4px; line-height: 1; border-radius: 1000px; aspect-ratio: 1; text-align: center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
 				     style="width: 20px; height: 20px; display: block; place-self: center">
@@ -755,6 +808,9 @@
 	const helpBtn = document.getElementById('helpBtn');
 	const helpOverlay = document.getElementById('help-overlay');
 	const closeHelpBtn = document.getElementById('close-help-btn');
+	const checkUpdatesBtn = document.getElementById('check-updates-btn');
+	const logLevelSelect = document.getElementById('log-level-select');
+	const themeSelect = document.getElementById('theme-select');
 	
 	// --- State ---
 	let isPollingEnabled = true;
@@ -763,6 +819,10 @@
 	let pollingIntervalId = null;
 	let userHasScrolled = false;
 	let scrollTimeout = null;
+	let currentLogLevel = 'info';
+	
+	// Log level hierarchy: error > warn > info > debug
+	const logLevels = {error: 0, warn: 1, info: 2, debug: 3};
 	
 	// --- Utility Functions ---
 	function debounce(func, delay) {
@@ -773,9 +833,16 @@
 		};
 	}
 	
-	function addLog(message) {
+	function addLog(message, level = 'debug') {
+		const levels = {error: 0, warn: 1, info: 2, debug: 3};
+		const currentLevel = levels[currentLogLevel] || 3;
+		const messageLevel = levels[level] || 3;
 		const time = new Date().toLocaleTimeString();
-		logArea.value += `[${time}] ${message}\n`;
+		
+		// Only emit if message level is <= current log level
+		if (messageLevel <= currentLevel) {
+			logArea.value += `[${time}] [${level.toUpperCase()}] ${message}\n`;
+		}
 		if (!userHasScrolled) {
 			logArea.scrollTop = logArea.scrollHeight;
 		}
@@ -783,6 +850,7 @@
 	
 	// --- Settings & Credential Management ---
 	async function loadSettings() {
+		addLog('load settings...');
 		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
 		if (savedInterval) intervalSelect.value = savedInterval;
 		const startOnLogin = await ipcRenderer.invoke('get-setting', 'startOnLogin');
@@ -814,18 +882,18 @@
 		const intervalMs = parseInt(intervalSelect.value, 10);
 		if (isPollingEnabled) pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
 		const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
-		addLog(`Polling interval set to ${selectedOption}.`);
+		addLog(`轮询间隔已设为${selectedOption}`, 'info');
 	}
 	
 	async function handleLogin() {
 		if (isLoginInProgress) {
-			addLog('Login already in progress, skipping.');
+			addLog('已经在登录啦，请勿重复点击', 'info');
 			return;
 		}
 		const username = usernameInput.value.trim();
 		const password = passwordInput.value.trim();
 		if (!username || !password) {
-			addLog('请输入学号和密码');
+			addLog('请输入学号和密码', 'error');
 			return;
 		}
 		
@@ -838,14 +906,14 @@
 		try {
 			const result = await ipcRenderer.invoke('network-login', {username, password});
 			if (result) {
-				addLog('认证成功！');
+				addLog('认证成功！', 'info');
 				updateTrafficInfo();
 			} else {
 				const message = result && result.message ? result.message : '未知错误';
-				addLog('认证失败: ' + message);
+				addLog('认证失败: ' + message, 'error');
 			}
 		} catch (error) {
-			addLog('认证出错: ' + error.message);
+			addLog('认证出错: ' + error.message, 'error');
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
 			loginBtn.textContent = oldText;
@@ -855,7 +923,7 @@
 	
 	async function runNetworkCheck() {
 		if (isLoginInProgress && !isPollingEnabled) return;
-		addLog('Running network status check...');
+		addLog('运行连通性测试...');
 		try {
 			const connectivity = await ipcRenderer.invoke('check-connectivity');
 			const timeString = new Date().toLocaleTimeString();
@@ -869,22 +937,18 @@
 			netLastChecked.textContent = `上次检查：${timeString}`;
 			
 			if (isAutoAuthEnabled && (!connectivity.ipv4Access || !connectivity.ipv6Access)) {
-				addLog('Internet connectivity failed. Triggering authentication attempt.');
+				addLog('无网络，尝试登录...', 'info');
 				handleLogin();
 			} else {
 				updateTrafficInfo();
 			}
-            return connectivity;
+			return connectivity;
 		} catch (error) {
-			addLog(`Network check failed: ${error.message}`);
+			addLog(`网络连通性检查错误: ${error.message}`, 'error');
 		}
 	}
 	
-	// --- Traffic Pie Chart ---
-	function cssVar(name, fallback) {
-		return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
-	}
-	
+	// Traffic pie
 	function parseSize(str) {
 		if (!str) return NaN;
 		const s = String(str).trim().toUpperCase();
@@ -915,11 +979,11 @@
 	}
 	
 	async function updateTrafficInfo() {
-		addLog('Fetching traffic info...');
+		addLog('获取流量信息...');
 		try {
 			const trafficInfo = await ipcRenderer.invoke('get-traffic-info');
 			if (!trafficInfo) {
-				throw new Error('Received no traffic info from main process.');
+				throw new Error('main.js未返回任何流量信息');
 			}
 			
 			usedTrafficStatus.textContent = trafficInfo.usedTraffic;
@@ -932,7 +996,7 @@
 			updateTrafficPie(usedBytes, totalBytes);
 			
 		} catch (error) {
-			addLog(`Failed to fetch traffic info: ${error.message}`);
+			addLog(`获取流量信息失败: ${error.message}`, 'warn');
 			usedTrafficStatus.textContent = 'Unknown';
 			totalTrafficStatus.textContent = 'Unknown';
 			balanceStatus.textContent = 'Unknown';
@@ -1102,7 +1166,7 @@
 		
 		// Logout doesn't need credentials
 		if (loginType !== 'sushe-logout' && (!username || !password)) {
-			addLog('请输入学号和密码');
+			addLog('请输入学号和密码', 'error');
 			return;
 		}
 		
@@ -1128,8 +1192,90 @@
 		}
 	}
 	
-	ipcRenderer.on('log-message', (event, message) => {
-		addLog(message);
+	// --- Check Updates Button ---
+	checkUpdatesBtn.addEventListener('click', async () => {
+		checkUpdatesBtn.disabled = true;
+		const oldText = checkUpdatesBtn.textContent;
+		checkUpdatesBtn.textContent = '检查中...';
+		addLog('Manually checking for updates...');
+		
+		try {
+			await ipcRenderer.invoke('check-updates');
+			addLog('Update check completed.');
+		} catch (error) {
+			addLog(`Update check failed: ${error.message}`);
+		} finally {
+			checkUpdatesBtn.disabled = false;
+			checkUpdatesBtn.textContent = oldText;
+		}
+	});
+	
+	// --- Log Level Filtering ---
+	logLevelSelect.addEventListener('change', async (e) => {
+		currentLogLevel = e.target.value;
+		await ipcRenderer.invoke('set-setting', {key: 'logLevel', value: currentLogLevel});
+		addLog(`日志等级已改为: ${currentLogLevel.toUpperCase()}`, 'info');
+	});
+	
+	// Load saved log level
+	(async () => {
+		const savedLogLevel = await ipcRenderer.invoke('get-setting', 'logLevel');
+		if (savedLogLevel) {
+			currentLogLevel = savedLogLevel;
+			logLevelSelect.value = savedLogLevel;
+		}
+		addLog(`当前日志等级：` + currentLogLevel, 'info');
+	})();
+	
+	// --- Theme Selection ---
+	function applyTheme(theme) {
+		let isDark;
+		if (theme === 'auto') {
+			isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+		} else {
+			isDark = theme === 'dark';
+		}
+		
+		document.documentElement.style.setProperty('--bg', isDark ? '#0f172a' : '#f6f7fb');
+		document.documentElement.style.setProperty('--surface', isDark ? '#0b1220' : '#fff');
+		document.documentElement.style.setProperty('--card', isDark ? '#111827' : '#fff');
+		document.documentElement.style.setProperty('--border', isDark ? 'rgba(255, 255, 255, .08)' : 'rgba(0, 0, 0, .08)');
+		document.documentElement.style.setProperty('--text', isDark ? '#e5e7eb' : '#0f172a');
+		document.documentElement.style.setProperty('--muted', isDark ? '#9ca3af' : '#6b7280');
+		document.documentElement.style.setProperty('--ring', isDark ? '#334155' : '#e5e7eb');
+		document.documentElement.style.setProperty('--shadow', isDark ? '0 10px 24px rgba(0, 0, 0, .28)' : '0 10px 22px rgba(17, 24, 39, .08)');
+		document.documentElement.style.setProperty('--isdark', isDark ? '1' : '0');
+	}
+	
+	themeSelect.addEventListener('change', async (e) => {
+		const theme = e.target.value;
+		applyTheme(theme);
+		await ipcRenderer.invoke('set-setting', {key: 'theme', value: theme});
+		addLog(`主题已改为: ${theme}`, 'info');
+	});
+	
+	// Load saved theme preference
+	(async () => {
+		const savedTheme = await ipcRenderer.invoke('get-setting', 'theme');
+		if (savedTheme) {
+			themeSelect.value = savedTheme;
+			applyTheme(savedTheme);
+		} else {
+			// Default to auto
+			themeSelect.value = 'auto';
+			applyTheme('auto');
+		}
+	})();
+	
+	// Listen for system theme changes when in auto mode
+	window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+		if (themeSelect.value === 'auto') {
+			applyTheme('auto');
+		}
+	});
+	
+	ipcRenderer.on('log-message', (event, message, level) => {
+		addLog(message, level);
 	});
 </script>
 </body>

@@ -35,13 +35,13 @@ async function checkConnectivity() {
     const checkUrl = async (url) => {
         try {
             const response = await axios.get(url, {timeout: 3000});
-            return response.status === 200;
+            return response.status > 0;
         } catch (error) {
             return false;
         }
     };
 
-    eventBus.emit('log', 'Checking IPv4/IPv6 connectivity...');
+    eventBus.log('检测ipv4+ipv6网络连通性...');
     const [ipv4Result, ipv6Result] = await Promise.allSettled([
         //checkUrl('https://ipv4.quitsense.cn:10443/api/helloworld'),
         //checkUrl('https://ipv6.quitsense.cn:10443/api/helloworld')
@@ -57,15 +57,16 @@ async function checkConnectivity() {
 
 async function login(username, password) {
     try {
+			eventBus.log('尝试登录...', 'info');
         const accessibility = await checkConnectivity();
         const ipv4Access = accessibility.ipv4Access;
         const ipv6Access = accessibility.ipv6Access;
 
         const reachable = await getBJUTauthServersReachability();
-        eventBus.emit('log', `Reachability check: sushe: ${reachable.sushe}, wlgn: ${reachable.wlgn}, lgn: ${reachable.lgn}, lgn6: ${reachable.lgn6}`);
+        eventBus.log(`Reachability check: sushe: ${reachable.sushe}, wlgn: ${reachable.wlgn}, lgn: ${reachable.lgn}, lgn6: ${reachable.lgn6}`);
 
         if (ipv4Access && ipv6Access) {
-            eventBus.emit('log', 'Login aborted: ipv4 and ipv6 OK, so you logged in already probably');
+						eventBus.log('已获得网络连接，无需认证', 'info')
         } else if (ipv4Access && !ipv6Access) { // 掉ipv6，一般情况下仅需登录lgn6
             if (reachable.lgn6) {
                 await lgn6Login(username, password);
@@ -98,7 +99,7 @@ async function login(username, password) {
             return {success: true, message: '自适应认证成功'};
         }, 5000); // 5s等待ipv6获取
     } catch (error) {
-        eventBus.emit('log', `Login aborted: ${error.message}`);
+        eventBus.log(`登录失败: ${error.message}`, 'error');
         throw error; // Re-throw error to be caught by caller
     }
 }
@@ -137,51 +138,51 @@ async function updateTrafficData() {
         };
 
     } catch (error) {
-        eventBus.emit('log', `error updating traffic data: ${error.message}`);
+        eventBus.log(`更新流量使用情况失败: ${error.message}`, 'warn');
         throw error;
     }
 }
 
 async function susheLogin(username, password) {
-    const userAccount = `${username}@campus`;
-    const data = {
-        callback: 'dr1003',
-        login_method: 1,
-        user_account: userAccount,
-        user_password: password,
-        wlan_user_ip: '',
-        wlan_user_ipv6: '',
-        wlan_user_mac: '000000000000', // 原版网页登录也是这个空MAC
-        wlan_ac_ip: '',
-        wlan_ac_name: '',
-        jsVersion: '4.2.1',
-        terminal_type: '1',
-        lang: 'zh-cn',
-        'v': Math.floor(Math.random() * 9000) + 1000,
-    };
-    const loginUrl = `http://10.21.221.98:801/eportal/portal/login?${qs.stringify(data)}`;
-
     try {
-        const res = await axios.get(loginUrl);
+				eventBus.log('尝试宿舍登录...', 'info');
+	    const userAccount = `${username}@campus`;
+	    const data = {
+		    callback: 'dr1003',
+		    login_method: 1,
+		    user_account: userAccount,
+		    user_password: password,
+		    wlan_user_ip: '',
+		    wlan_user_ipv6: '',
+		    wlan_user_mac: '000000000000', // 原版网页登录也是这个空MAC
+		    wlan_ac_ip: '',
+		    wlan_ac_name: '',
+		    jsVersion: '4.2.1',
+		    terminal_type: '1',
+		    lang: 'zh-cn',
+		    'v': Math.floor(Math.random() * 9000) + 1000,
+	    };
+	    const loginUrl = `http://10.21.221.98:801/eportal/portal/login?${qs.stringify(data)}`;
+	    const res = await axios.get(loginUrl);
         console.log(res.data);
         const responseData = parse_respond(res.data);
         if (parseInt(responseData.result) === 1) {
             const msg = `宿舍网登录成功：${responseData.msg}`;
-            eventBus.emit('log', msg);
+            eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error(`宿舍网登录失败：${responseData.msg}`);
+            throw new Error(`${responseData.msg}`);
         }
     } catch (error) {
-        eventBus.emit('log', `宿舍网登录错误: ${error.message}`);
+        eventBus.log(`宿舍网登录错误: ${error.message}`, 'error');
         throw error;
     }
 }
 
 async function susheLogout() {
-    const logoutUrl = "http://10.21.221.98:801/eportal/portal/logout?callback=dr1003&login_method=1&user_account=6LSm5Y%2B35LiN5a2Y5Zyo&user_password=5L2g54yc5LiN5Yiw&ac_logout=0&register_mode=0&wlan_user_ip=10.126.15.92&wlan_user_ipv6=&wlan_vlan_id=0&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.1&v=4776&lang=zh";
     try {
-        eventBus.emit('log', '尝试宿舍登出...');
+        eventBus.log('尝试宿舍登出...', 'info');
+	      const logoutUrl = "http://10.21.221.98:801/eportal/portal/logout?callback=dr1003&login_method=1&user_account=6LSm5Y%2B35LiN5a2Y5Zyo&user_password=5L2g54yc5LiN5Yiw&ac_logout=0&register_mode=0&wlan_user_ip=10.126.15.92&wlan_user_ipv6=&wlan_vlan_id=0&wlan_user_mac=000000000000&wlan_ac_ip=&wlan_ac_name=&jsVersion=4.2.1&v=4776&lang=zh";
         const res = await axios.get(logoutUrl, {
             headers: {
                 'Referer': 'http://10.21.221.98/'
@@ -190,41 +191,41 @@ async function susheLogout() {
         const responseData = parse_respond(res.data);
         if (parseInt(responseData.result) === 1) {
             const msg = `宿舍登出成功: ${responseData.msg}`;
-            eventBus.emit('log', msg);
+            eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error(`宿舍登出失败: ${responseData.msg}`);
+            throw new Error(`${responseData.msg}`);
         }
     } catch (error) {
-        eventBus.emit('log', `宿舍登出错误: ${error.message}`);
+        eventBus.log(`宿舍登出错误: ${error.message}`, 'error');
         throw error;
     }
 }
 
 async function lgn6Login(username, password, duallogin = false) {
-    const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
-    eventBus.emit('log', 'Logging in: lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)');
     try {
+	      eventBus.log('尝试lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)登录', 'info');
+		    const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
         const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
             DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''
         }), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
         // console.log(response.data); // html with js dynamic load. consider ipv6 access verification
         if ((await checkConnectivity()).ipv6Access) {
             const msg = 'lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)登录成功';
-            eventBus.emit('log', msg);
+            eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error('lgn6登录失败：尝试登录后仍无ipv6连接');
+            throw new Error('尝试登录后仍无ipv6连接');
         }
     } catch (error) {
-        eventBus.emit('log', `lgn6登录错误: ${error.message}`);
+        eventBus.log(`lgn6登录错误: ${error.message}`, 'error');
         throw error;
     }
 }
 
 async function wlgnLogin(username, password) {
-    eventBus.emit('log', 'Attempting campus Wi-Fi (wlgn) login...');
     try {
+	      eventBus.log('尝试wlgn登录...', 'info');
         const params = {
             callback: 'dr1002', DDDDD: username, upass: password, '0MKKey': '123456',
             R1: '0', R2: '', R3: '0', R6: '0', para: '00', v6ip: '',
@@ -236,13 +237,13 @@ async function wlgnLogin(username, password) {
 
         if (parseInt(data.result) === 1) {
             const msg = `wlgn登录成功: ${data.msga || 'N/A'}`;
-            eventBus.emit('log', msg);
+            eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error(`wlgn登录失败: ${data.result}, Message: ${data.msga}`);
+            throw new Error(`Api返回结果：${data.result}, 信息: ${data.msga || 'N/A'}`);
         }
     } catch (error) {
-        eventBus.emit('log', `wlgn登录错误: ${error.message}`);
+        eventBus.log(`wlgn登录错误: ${error.message}`, 'error');
         throw error;
     }
 }
@@ -250,13 +251,15 @@ async function wlgnLogin(username, password) {
 async function lgnLogin(username, password) {
     // lgnlogin必须为双栈登录，因为其v46s只能为2或0（仅ipv6/双栈），而在lgn只登录ipv6无意义，在lgn6中实现更佳。
     try {
+				eventBus.log('尝试lgn双栈登录...', 'info');
+			
         const res1 = await axios.post('https://lgn6.bjut.edu.cn/V6?https://lgn.bjut.edu.cn', qs.stringify({
             DDDDD: username, upass: password, v46s: 0, '0MKKey': ''
         }), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
 
         const $ = cheerio.load(res1.data);
         const v6ip = $('input[name=v6ip]').val();
-        if (!v6ip) throw new Error('Could not retrieve v6ip from lgn6. IPv6 might be unavailable.');
+        if (!v6ip) eventBus.log('无法获得ipv6地址，ipv6可能不可用。', 'warn');
 
         const res2 = await axios.post('https://lgn.bjut.edu.cn', qs.stringify({
             DDDDD: username, upass: password, '0MKKey': 'Login', v6ip: v6ip
@@ -265,13 +268,13 @@ async function lgnLogin(username, password) {
         const connection_res = await checkConnectivity();
         if (connection_res.ipv6Access && connection_res.ipv4Access) {
             const msg = 'lgn双栈登录成功';
-            eventBus.emit('log', msg);
+            eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error('LGN login failed. No internet access after login');
+            throw new Error('登录后仍无网络连接');
         }
     } catch (error) {
-        eventBus.emit('log', `LGN login error: ${error.message}`);
+        eventBus.log(`lgn双栈登录失败: ${error.message}`, 'error');
         throw error;
     }
 }

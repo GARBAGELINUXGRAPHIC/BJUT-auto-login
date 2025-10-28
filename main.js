@@ -81,10 +81,14 @@ if (!gotTheLock) {
 		const startOnLogin = store.get('startOnLogin', false);
 		app.setLoginItemSettings({openAtLogin: startOnLogin});
 		
+		// Load and apply saved log level
+		const savedLogLevel = store.get('logLevel', 'debug');
+		eventBus.setLogLevel(savedLogLevel);
+		
 		// Prevent App Nap on macOS to ensure background tasks continue
 		if (process.platform === 'darwin') {
 			powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
-			eventBus.emit('log', 'Power save blocker started to prevent App Nap on macOS');
+			eventBus.log('Power save blocker started to prevent App Nap on macOS');
 		}
 	});
 	
@@ -104,7 +108,7 @@ if (!gotTheLock) {
 			// Stop power save blocker before quitting
 			if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
 				powerSaveBlocker.stop(powerSaveBlockerId);
-				eventBus.emit('log', 'Power save blocker stopped');
+				eventBus.log('Power save blocker stopped');
 			}
 			quitAppModule.quitApp();
 		});
@@ -112,8 +116,8 @@ if (!gotTheLock) {
 	
 	// --- IPC Handlers --- //
 	
-	eventBus.on('log', (message) => {
-		sendLogMessage(message);
+	eventBus.on('log', (message, level) => {
+		sendLogMessage(message, level);
 	});
 	
 	// Settings Management
@@ -121,8 +125,13 @@ if (!gotTheLock) {
 		return store.get(key);
 	});
 	
-	ipcMain.on('set-setting', (event, {key, value}) => {
+	ipcMain.handle('set-setting', async (event, {key, value}) => {
 		store.set(key, value);
+		// Update log level in event bus if it's being changed
+		if (key === 'logLevel') {
+			eventBus.setLogLevel(value);
+		}
+		return true;
 	});
 	
 	ipcMain.on('set-start-on-login', (event, enabled) => {
@@ -138,7 +147,7 @@ if (!gotTheLock) {
 				return JSON.parse(password);
 			}
 		} catch (error) {
-			eventBus.emit('log', 'Could not retrieve credentials.');
+			eventBus.log('无法获取已存储的凭证', 'error');
 		}
 		return null;
 	});
@@ -148,7 +157,7 @@ if (!gotTheLock) {
 			const credentials = JSON.stringify({username, password});
 			await keytar.setPassword(KEYTAR_SERVICE, KEYTAR_ACCOUNT, credentials);
 		} catch (error) {
-			eventBus.emit('log', `Error saving credentials: ${error.message}`);
+			eventBus.log(`无法存储凭证: ${error.message}`, 'error');
 		}
 	});
 
@@ -167,15 +176,14 @@ if (!gotTheLock) {
 	
 	ipcMain.handle('network-login', async (event, credentials) => {
 		const {username, password} = credentials;
-		eventBus.emit('log', 'Authentication process started...');
+		eventBus.log('Login process invoked...');
 		
 		try {
 			const result = await login(username, password);
-			eventBus.emit('log', 'Authentication process finished.');
+			eventBus.log('Login process finished.');
 			return result;
 		} catch (error) {
-			eventBus.emit('log', `Critical authentication error: ${error.message}`);
-			console.error('Authentication failed:', error);
+			eventBus.log(`Critical authentication error: ${error.message}`);
 			return {success: false, message: error.message};
 		}
 	});
@@ -212,9 +220,9 @@ if (!gotTheLock) {
 	
 	// --- Utility Functions --- //
 	
-	function sendLogMessage(message) {
+	function sendLogMessage(message, level = 'debug') {
 		if (mainWindow) {
-			mainWindow.webContents.send('log-message', message);
+			mainWindow.webContents.send('log-message', message, level);
 		}
 	}
 	
@@ -234,19 +242,19 @@ if (!gotTheLock) {
 		});
 		
 		notification.show();
-		eventBus.emit('log', `Update notification shown for version ${latestVersion}`);
+		eventBus.log(`Update notification shown for version ${latestVersion}`);
 	}
 	
 	async function checkUpdates() {
 		try {
-			eventBus.emit('log', 'Checking updates automatically...');
-			eventBus.emit('log', 'Current Version: ' + app.getVersion()); // X.Y.Z
+			eventBus.log('正在检测更新...', 'info');
+			eventBus.log('Current Version: ' + app.getVersion()); // X.Y.Z
 			const res = await axios.get('https://ipv4.quitsense.cn/api/bjutautologin/getLatestTag'); // returns 'VX.Y.Z', github release tag
 			if (!res.data.success) {
-				throw new Error('Failed to get latest tag: ' + res.data.message);
+				throw new Error('无法获取最新版本: ' + res.data.message);
 			}
 			let tagstr = res.data.data; // yes, my api is shit
-			eventBus.emit('log', 'Get tagstr success! Latest version = ' + tagstr);
+			eventBus.log('Get tagstr success! Latest version = ' + tagstr);
 			if (tagstr.at(0).toLowerCase() === 'v') { // remove v at front
 				tagstr = tagstr.substring(1);
 			}
@@ -262,7 +270,7 @@ if (!gotTheLock) {
 					need_update = true;
 					break;
 				} else if (parseInt(latestTags[i]) < parseInt(currentTags[i])) { // wtf...
-					eventBus.emit('log', 'It seems that latest Tag is SMALLER than current Tag? Am I in future?(' + tagstr + ' < ' + app.getVersion() + ')');
+					eventBus.log('It seems that latest Tag is SMALLER than current Tag? Am I in future?(' + tagstr + ' < ' + app.getVersion() + ')');
 					return;
 				}
 			}
@@ -270,13 +278,13 @@ if (!gotTheLock) {
 			
 			// show notification if update is needed
 			if(!need_update) {
-				eventBus.emit('log', 'No need to update(' + tagstr + ' = ' + app.getVersion() + ')');
+				eventBus.log('已是最新版本(' + tagstr + ' = ' + app.getVersion() + ')', 'info');
 				return;
 			}
-			eventBus.emit('log', 'Update found! (' + tagstr + ' > ' + app.getVersion() + ') Firing balloon.');
+			eventBus.log('找到更新！(' + tagstr + ' > ' + app.getVersion() + ')');
 			createUpdatePopup(tagstr);
 		} catch (e) {
-			eventBus.emit('log', 'check updates failed: ' + e.message);
+			eventBus.log('检查更新失败: ' + e.message + '，1h后重试', 'error');
 			setTimeout(checkUpdates, 3600 * 1000);
 		}
 	}
