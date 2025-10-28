@@ -48,7 +48,7 @@ async function checkConnectivity() {
         checkUrl('https://4.ipw.cn'),
         checkUrl('https://6.ipw.cn')
     ]);
-
+ 
     return {
         ipv4Access: ipv4Result.status === 'fulfilled' && ipv4Result.value,
         ipv6Access: ipv6Result.status === 'fulfilled' && ipv6Result.value,
