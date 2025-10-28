@@ -1,5 +1,5 @@
 // Electron 主进程
-const {app, BrowserWindow, ipcMain} = require('electron');
+const {app, BrowserWindow, ipcMain, Notification, powerSaveBlocker} = require('electron');
 const keytar = require('keytar');
 const Store = require('electron-store');
 const {
@@ -9,7 +9,6 @@ const {
 	wlgnLogin,
 	lgn6Login,
 	lgnLogin46,
-	susheLogout,
 	updateTrafficData
 } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
@@ -27,6 +26,7 @@ const KEYTAR_ACCOUNT = 'user_credentials';
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 let tray;
+let powerSaveBlockerId = null;
 
 // --- Single Instance Lock ---
 const gotTheLock = app.requestSingleInstanceLock();
@@ -80,6 +80,12 @@ if (!gotTheLock) {
 		// Apply saved settings on startup
 		const startOnLogin = store.get('startOnLogin', false);
 		app.setLoginItemSettings({openAtLogin: startOnLogin});
+		
+		// Prevent App Nap on macOS to ensure background tasks continue
+		if (process.platform === 'darwin') {
+			powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+			eventBus.emit('log', 'Power save blocker started to prevent App Nap on macOS');
+		}
 	});
 	
 	app.on('activate', function () {
@@ -95,6 +101,11 @@ if (!gotTheLock) {
 	// Handle macOS dock quit - set isQuiting flag so window can close properly
 	if (process.platform === 'darwin') {
 		app.on('before-quit', () => {
+			// Stop power save blocker before quitting
+			if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+				powerSaveBlocker.stop(powerSaveBlockerId);
+				eventBus.emit('log', 'Power save blocker stopped');
+			}
 			quitAppModule.quitApp();
 		});
 	}
@@ -219,7 +230,7 @@ if (!gotTheLock) {
 		});
 		
 		notification.on('click', () => {
-			require('electron').shell.openExternal('https://quitsense.cn/apps/bjutautologin/download');
+				require('electron').shell.openExternal('https://quitsense.cn/apps/bjutautologin/download');
 		});
 		
 		notification.show();
@@ -228,12 +239,14 @@ if (!gotTheLock) {
 	
 	async function checkUpdates() {
 		try {
+			eventBus.emit('log', 'Checking updates automatically...');
 			eventBus.emit('log', 'Current Version: ' + app.getVersion()); // X.Y.Z
 			const res = await axios.get('https://ipv4.quitsense.cn/api/bjutautologin/getLatestTag'); // returns 'VX.Y.Z', github release tag
 			if (!res.data.success) {
 				throw new Error('Failed to get latest tag: ' + res.data.message);
 			}
 			let tagstr = res.data.data; // yes, my api is shit
+			eventBus.emit('log', 'Get tagstr success! Latest version = ' + tagstr);
 			if (tagstr.at(0).toLowerCase() === 'v') { // remove v at front
 				tagstr = tagstr.substring(1);
 			}
@@ -256,8 +269,11 @@ if (!gotTheLock) {
 			if (!need_update && latestTags.length > currentTags.length) need_update = true;
 			
 			// show notification if update is needed
-			if(!need_update) return;
-			
+			if(!need_update) {
+				eventBus.emit('log', 'No need to update(' + tagstr + ' = ' + app.getVersion() + ')');
+				return;
+			}
+			eventBus.emit('log', 'Update found! (' + tagstr + ' > ' + app.getVersion() + ') Firing balloon.');
 			createUpdatePopup(tagstr);
 		} catch (e) {
 			eventBus.emit('log', 'check updates failed: ' + e.message);

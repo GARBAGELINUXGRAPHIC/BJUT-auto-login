@@ -21,6 +21,7 @@
 			--shadow: 0 10px 24px rgba(0, 0, 0, .28);
 			--radius: 12px;
 			--radius-xs: 8px;
+			--isdark: 1; /* true */
 		}
 		
 		@media (prefers-color-scheme: light) {
@@ -33,6 +34,7 @@
 				--muted: #6b7280;
 				--ring: #e5e7eb;
 				--shadow: 0 10px 22px rgba(17, 24, 39, .08);
+				--isdark: 0; /* false */
 			}
 		}
 		
@@ -546,7 +548,7 @@
 <div class="wrapper">
 	<div class="header">
 		<div class="logo" aria-hidden="true">
-			<img src="./utils/basic.png" style="height: 30px; filter: invert(100%);)"/>
+			<img src="./utils/transparent.png" style="height: 30px; filter: invert(1); margin-top: -0.5px;"/>
 		</div>
 		<div>
 			<h1>BJUT 校园网自动认证</h1>
@@ -579,7 +581,6 @@
 						</div>
 					</div>
 				</div>
-				<div id="status" class="status" style="display:none;"></div>
 				
 				<div class="row-2" style="margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px;">
 					<button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
@@ -600,8 +601,8 @@
 				<h2 class="section-title">网络状态</h2>
 				<div class="net-row" style="justify-content:space-between;">
 					<div class="net-row" style="height: 100%;">
-						<div id="ipv4-status" class="pill" style="width: 115px;">IPv4: Unknown</div>
-						<div id="ipv6-status" class="pill" style="width: 115px;">IPv6: Unknown</div>
+						<div id="ipv4-status" class="pill" style="width: 114px;">IPv4: Unknown</div>
+						<div id="ipv6-status" class="pill" style="width: 114px;">IPv6: Unknown</div>
 					</div>
 					<button data-ripple id="refresh-btn" class="btn">刷新</button>
 				</div>
@@ -720,7 +721,6 @@
 	const passwordInput = document.getElementById('password');
 	const loginBtn = document.getElementById('loginBtn');
 	const logArea = document.getElementById('logArea');
-	const statusDiv = document.getElementById('status');
 	const modeSelect = document.getElementById('mode-select');
 	const intervalSelect = document.getElementById('interval-select');
 	const autoAuthSwitch = document.getElementById('auto-auth-switch');
@@ -770,12 +770,6 @@
 		}
 	}
 	
-	function showStatus(message, isSuccess) {
-		statusDiv.textContent = message;
-		statusDiv.className = 'status ' + (isSuccess ? 'success' : 'error');
-		statusDiv.style.display = 'block';
-	}
-	
 	// --- Settings & Credential Management ---
 	async function loadSettings() {
 		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
@@ -820,7 +814,7 @@
 		const username = usernameInput.value.trim();
 		const password = passwordInput.value.trim();
 		if (!username || !password) {
-			showStatus('请输入学号和密码', false);
+			addLog('请输入学号和密码');
 			return;
 		}
 		
@@ -833,14 +827,14 @@
 		try {
 			const result = await ipcRenderer.invoke('network-login', {username, password});
 			if (result) {
-				showStatus('认证成功！', true);
+				addLog('认证成功！');
 				updateTrafficInfo();
 			} else {
 				const message = result && result.message ? result.message : '未知错误';
-				showStatus('认证失败: ' + message, false);
+				addLog('认证失败: ' + message);
 			}
 		} catch (error) {
-			showStatus('认证出错: ' + error.message, false);
+			addLog('认证出错: ' + error.message);
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
 			loginBtn.textContent = oldText;
@@ -941,7 +935,14 @@
 		await loadSettings();
 		setupPolling();
 		await runNetworkCheck();
-		await ipcRenderer.invoke('check-updates'); // even if no network, it will auto retry after 1h.
+		
+		// Delay update check to allow network stack to initialize
+		// Use 2.5x the polling interval as delay
+		const intervalMs = parseInt(intervalSelect.value, 10);
+		const updateCheckDelay = intervalMs * 2.5;
+		setTimeout(async () => {
+			await ipcRenderer.invoke('check-updates');
+		}, updateCheckDelay);
 		
 		// --- Ripple Effect Handling ---
 		const ripple = new Ripple();
@@ -1076,7 +1077,7 @@
 		
 		// Logout doesn't need credentials
 		if (loginType !== 'sushe-logout' && (!username || !password)) {
-			showStatus('请输入学号和密码', false);
+			addLog('请输入学号和密码');
 			return;
 		}
 		
@@ -1084,22 +1085,18 @@
 		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
 		buttons.forEach(btn => btn.disabled = true);
 		
-		showStatus(`Executing ${loginType}...`, true);
 		addLog(`Executing ${loginType}...`);
 		
 		try {
 			const result = await ipcRenderer.invoke(loginType, {username, password});
 			if (result && result.success) {
-				showStatus(`${result.message}`, true);
 				addLog(`${loginType} Succeeded: ${result.message}`);
 				updateTrafficInfo();
 			} else {
 				const message = result ? result.message : '未知错误';
-				showStatus(`${loginType} 失败: ${message}`, false);
 				addLog(`${loginType} Failed: ${message}`);
 			}
 		} catch (error) {
-			showStatus(`${loginType} 错误: ${error.message}`, false);
 			addLog(`${loginType} error: ${error.message}`);
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
