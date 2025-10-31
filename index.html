@@ -17,7 +17,7 @@
 			--primary-600: #2563eb;
 			--success: #16a34a;
 			--danger: #dc2626;
-			--ring: #334155;
+			--ring: rgba(128, 128, 128, 0.2);
 			--shadow: 0 10px 24px rgba(0, 0, 0, .28);
 			--radius: 12px;
 			--radius-xs: 8px;
@@ -35,7 +35,7 @@
 				--border: rgba(0, 0, 0, .08);
 				--text: #0f172a;
 				--muted: #6b7280;
-				--ring: #e5e7eb;
+				--ring: rgba(128, 128, 128, 0.2);
 				--shadow: 0 10px 22px rgba(17, 24, 39, .08);
 				--isdark: 0; /* false */
 			}
@@ -648,14 +648,14 @@
 			
 			<section class="card">
 				<h2 class="section-title">设置</h2>
+				<div class="switch-row" style="height: 38px; display: none;">
+					<span>模式</span>
+					<select id="mode-select">
+						<option value="polling">轮询</option>
+						<option value="detection" disabled>侦测（未实现）</option>
+					</select>
+				</div>
 				<div class="row-2" style="margin-top:8px; height: 38px;">
-					<div class="switch-row" style="height: 38px;">
-						<span>模式</span>
-						<select id="mode-select">
-							<option value="polling">轮询</option>
-							<option value="detection" disabled>侦测（未实现）</option>
-						</select>
-					</div>
 					<div class="switch-row" style="height: 38px;">
 						<span>轮询间隔</span>
 						<select id="interval-select">
@@ -668,8 +668,6 @@
 							<option value="21600000">6h</option>
 						</select>
 					</div>
-				</div>
-				<div class="row-2" style="margin-top:8px; height: 38px;">
 					<div class="switch-row" style="height: 38px;">
 						<span>日志等级</span>
 						<select id="log-level-select">
@@ -679,6 +677,8 @@
 							<option value="error">错误</option>
 						</select>
 					</div>
+				</div>
+				<div class="row-2" style="margin-top:8px; height: 38px;">
 					<div class="switch-row" style="height: 38px;">
 						<span>主题</span>
 						<select id="theme-select">
@@ -687,13 +687,20 @@
 							<option value="dark">深色</option>
 						</select>
 					</div>
-				</div>
-				<div class="row-2" style="margin-top:8px; height: 38px;">
-					<button data-ripple id="check-updates-btn" class="btn" style="height: 100%;">检查更新</button>
 					<div class="switch-row">
 						<span>开机自启</span>
 						<label class="switch" title="系统登录后自动启动">
 							<input type="checkbox" id="start-on-login-switch">
+							<span class="slider"></span>
+						</label>
+					</div>
+				</div>
+				<div class="row-2" style="margin-top:8px; height: 38px;">
+					<button data-ripple id="check-updates-btn" class="btn" style="height: 100%;">检查更新</button>
+					<div class="switch-row">
+						<span>自动更新</span>
+						<label class="switch" title="启动时自动检查更新">
+							<input type="checkbox" id="auto-update-switch" checked>
 							<span class="slider"></span>
 						</label>
 					</div>
@@ -811,6 +818,7 @@
 	const checkUpdatesBtn = document.getElementById('check-updates-btn');
 	const logLevelSelect = document.getElementById('log-level-select');
 	const themeSelect = document.getElementById('theme-select');
+	const autoUpdateSwitch = document.getElementById('auto-update-switch');
 	
 	// --- State ---
 	let isPollingEnabled = true;
@@ -1011,13 +1019,21 @@
 		setupPolling();
 		await runNetworkCheck();
 		
+		// Load auto-update setting
+		const autoUpdateEnabled = await ipcRenderer.invoke('get-setting', 'autoUpdate');
+		if (autoUpdateEnabled !== null && autoUpdateEnabled !== undefined) {
+			autoUpdateSwitch.checked = autoUpdateEnabled;
+		}
+		
 		// Delay update check to allow network stack to initialize
-		// Use 2.5x the polling interval as delay
-		const intervalMs = parseInt(intervalSelect.value, 10);
-		const updateCheckDelay = intervalMs * 2.5;
-		setTimeout(async () => {
-			await ipcRenderer.invoke('check-updates');
-		}, updateCheckDelay);
+		// Only check if auto-update is enabled
+		if (autoUpdateSwitch.checked) {
+			const intervalMs = parseInt(intervalSelect.value, 10);
+			const updateCheckDelay = intervalMs * 2.5;
+			setTimeout(async () => {
+				await ipcRenderer.invoke('check-updates');
+			}, updateCheckDelay);
+		}
 		
 		// --- Ripple Effect Handling ---
 		const ripple = new Ripple();
@@ -1123,6 +1139,12 @@
 		const enabled = e.target.checked;
 		ipcRenderer.send('set-start-on-login', enabled);
 		addLog(`Start on system start is now ${enabled ? 'enabled' : 'disabled'}.`);
+	});
+	
+	autoUpdateSwitch.addEventListener('change', async (e) => {
+		const enabled = e.target.checked;
+		await ipcRenderer.invoke('set-setting', {key: 'autoUpdate', value: enabled});
+		addLog(`自动更新已${enabled ? '启用' : '禁用'}`, 'info');
 	});
 	
 	susheLoginBtn.addEventListener('click', () => handleSpecificLogin('sushe-login'));
@@ -1242,7 +1264,7 @@
 		document.documentElement.style.setProperty('--border', isDark ? 'rgba(255, 255, 255, .08)' : 'rgba(0, 0, 0, .08)');
 		document.documentElement.style.setProperty('--text', isDark ? '#e5e7eb' : '#0f172a');
 		document.documentElement.style.setProperty('--muted', isDark ? '#9ca3af' : '#6b7280');
-		document.documentElement.style.setProperty('--ring', isDark ? '#334155' : '#e5e7eb');
+		document.documentElement.style.setProperty('--ring', isDark ? 'rgba(128, 128, 128, 0.2)' : 'rgba(128, 128, 128, 0.2)');
 		document.documentElement.style.setProperty('--shadow', isDark ? '0 10px 24px rgba(0, 0, 0, .28)' : '0 10px 22px rgba(17, 24, 39, .08)');
 		document.documentElement.style.setProperty('--isdark', isDark ? '1' : '0');
 	}
