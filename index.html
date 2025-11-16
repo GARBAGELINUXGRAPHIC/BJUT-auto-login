@@ -288,7 +288,9 @@
 		
 		/* Settings compact rows */
 		.switch-row {
-			gap:6px; padding: 4px 10px; height: 38px;
+			gap: 6px;
+			padding: 4px 10px;
+			height: 38px;
 			display: grid;
 			grid-template-columns:1fr auto;
 			align-items: center;
@@ -585,7 +587,7 @@
 <div class="wrapper">
 	<div class="header">
 		<div class="logo" aria-hidden="true">
-			<img src="./utils/transparent.png" style="height: 30px; filter: invert(1); margin-top: -0.5px;" />
+			<img src="./utils/transparent.png" style="height: 30px; filter: invert(1); margin-top: -0.5px;"/>
 		</div>
 		<div>
 			<h1>BJUT 校园网自动认证</h1>
@@ -648,14 +650,7 @@
 			
 			<section class="card">
 				<h2 class="section-title">设置</h2>
-				<div class="switch-row" style="height: 38px; display: none;">
-					<span>模式</span>
-					<select id="mode-select">
-						<option value="polling">轮询</option>
-						<option value="detection" disabled>侦测（未实现）</option>
-					</select>
-				</div>
-				<div class="row-2" style="margin-top:8px;">
+				<div class="row-2" style="margin-top:0px;">
 					<div class="switch-row" style="height: 38px;">
 						<span>轮询间隔</span>
 						<select id="interval-select">
@@ -745,10 +740,13 @@
 			</section>
 			
 			<section class="card log-card">
-					<div style="display: flex; gap: 10px;">
-						<h2 class="section-title">运行日志</h2>
-						<button data-ripple class="btn" style="color: var(--muted); border: 1px solid var(--muted); padding: 0 4px; margin: 0; font-size: 10px; height: 18px; margin-top: -0.5px" onclick="document.getElementById('logArea').value = ''">清空</button>
-					</div>
+				<div style="display: flex; gap: 10px;">
+					<h2 class="section-title">运行日志</h2>
+					<button data-ripple class="btn"
+					        style="color: var(--muted); border: 1px solid var(--muted); padding: 0 4px; margin: 0; font-size: 10px; height: 18px; margin-top: -0.5px"
+					        onclick="document.getElementById('logArea').value = ''">清空
+					</button>
+				</div>
 				<textarea id="logArea" class="log" readonly></textarea>
 			</section>
 		</div>
@@ -773,12 +771,10 @@
 			<li style="margin-bottom: 6px;"><b>手动认证一次:</b> 自动检测网络环境并尝试登录，登录后获取ipv4+ipv6。</li>
 			<li style="margin-bottom: 6px;"><b>宿舍登录:</b> 宿舍区10.21.221.98红网认证一次，登录后获取ipv4+ipv6。</li>
 			<li style="margin-bottom: 6px;"><b>wlgn登录:</b> 用于教学楼、图书馆等区域的 bjut_wifi 无线网络的ipv4登录。</li>
-			<li style="margin-bottom: 6px;"><b>lgn6仅ipv6登录:</b> 使用lgn6服务器单独为ipv6网络进行认证，通常在连接wlgn后或掉ipv6时需要。
-			</li>
-			<li style="margin-bottom: 6px;"><b>lgn双栈登录:</b> 以lgn为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。
-			</li>
-			<li style="margin-bottom: 6px;"><b>lgn6双栈登录:</b> 以lgn6为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。
-			</li>
+			<li style="margin-bottom: 6px;"><b>lgn6仅ipv6登录:</b> 使用lgn6服务器单独为ipv6网络进行认证，通常在连接wlgn后或掉ipv6时需要。</li>
+			<li style="margin-bottom: 6px;"><b>lgn双栈登录:</b> 以lgn为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。</li>
+			<li style="margin-bottom: 6px;"><b>lgn6双栈登录:</b> 以lgn6为入口，用于实训楼等非宿舍区的有线网络认证，登录后获取ipv4+ipv6。</li>
+			<li style="margin-bottom: 6px;">注：手动认证一次在有网络时不会登录，但如果点击其他手动登录则仍会强制发起登录请求。</li>
 		</ul>
 	</div>
 </div>
@@ -792,7 +788,6 @@
 	const passwordInput = document.getElementById('password');
 	const loginBtn = document.getElementById('loginBtn');
 	const logArea = document.getElementById('logArea');
-	const modeSelect = document.getElementById('mode-select');
 	const intervalSelect = document.getElementById('interval-select');
 	const autoAuthSwitch = document.getElementById('auto-auth-switch');
 	const startOnLoginSwitch = document.getElementById('start-on-login-switch');
@@ -821,7 +816,6 @@
 	const autoUpdateSwitch = document.getElementById('auto-update-switch');
 	
 	// --- State ---
-	let isPollingEnabled = true;
 	let isAutoAuthEnabled = true;
 	let isLoginInProgress = false;
 	let pollingIntervalId = null;
@@ -888,7 +882,7 @@
 	function setupPolling() {
 		if (pollingIntervalId) clearInterval(pollingIntervalId);
 		const intervalMs = parseInt(intervalSelect.value, 10);
-		if (isPollingEnabled) pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
+		pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
 		const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
 		addLog(`轮询间隔已设为${selectedOption}`, 'info');
 	}
@@ -912,14 +906,14 @@
 		loginBtn.textContent = '认证中...';
 		
 		try {
-			const result = await ipcRenderer.invoke('network-login', {username, password});
-			if (result) {
-				addLog('认证成功！', 'info');
-				updateTrafficInfo();
-			} else {
-				const message = result && result.message ? result.message : '未知错误';
-				addLog('认证失败: ' + message, 'error');
-			}
+			await ipcRenderer.invoke('network-login', {username, password});
+			await sleep(5000); // 等待5s网络登录
+				const accessibility = await runNetworkCheck();
+				if(accessibility.ipv4Access && accessibility.ipv6Access) {
+					addLog("认证成功", 'info')
+				} else {
+					addLog('认证失败：认证后仍无网络连接', 'error')
+				}
 		} catch (error) {
 			addLog('认证出错: ' + error.message, 'error');
 		} finally {
@@ -928,9 +922,12 @@
 			isLoginInProgress = false;
 		}
 	}
+  
+  async function sleep(ms) {
+	  return new Promise(resolve => setTimeout(resolve, ms));
+  }
 	
 	async function runNetworkCheck() {
-		if (isLoginInProgress && !isPollingEnabled) return;
 		addLog('运行连通性测试...');
 		try {
 			const connectivity = await ipcRenderer.invoke('check-connectivity');
@@ -944,12 +941,15 @@
 			
 			netLastChecked.textContent = `上次检查：${timeString}`;
 			
-			if (isAutoAuthEnabled && (!connectivity.ipv4Access || !connectivity.ipv6Access)) {
-				addLog('无网络，尝试登录...', 'info');
-				handleLogin();
-			} else {
-				updateTrafficInfo();
+			addLog('检查结果：ipv4 = ' + connectivity.ipv4Access + ', ipv6 = ' + connectivity.ipv6Access);
+			
+				if(connectivity.ipv4Access && connectivity.ipv6Access) {
+		    updateTrafficInfo();
+			} else if(!isLoginInProgress && isAutoAuthEnabled) {
+			  addLog('无网络，尝试自动登录...', 'info');
+			  await handleLogin();
 			}
+			
 			return connectivity;
 		} catch (error) {
 			addLog(`网络连通性检查错误: ${error.message}`, 'error');
@@ -1119,12 +1119,6 @@
 	loginBtn.addEventListener('click', handleLogin);
 	refreshBtn.addEventListener('click', runNetworkCheck);
 	
-	modeSelect.addEventListener('change', (e) => {
-		isPollingEnabled = e.target.value === 'polling';
-		addLog(`Mode changed. Polling is now ${isPollingEnabled ? 'enabled' : 'disabled'}.`);
-		setupPolling();
-	});
-	
 	intervalSelect.addEventListener('change', () => {
 		ipcRenderer.send('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
 		setupPolling();
@@ -1195,22 +1189,26 @@
 		// Disable all buttons
 		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
 		buttons.forEach(btn => btn.disabled = true);
-		
+		const oldText = loginBtn.textContent;
+		isLoginInProgress = true;
+		loginBtn.textContent = '认证中...';
 		addLog(`Executing ${loginType}...`);
 		
 		try {
-			const result = await ipcRenderer.invoke(loginType, {username, password});
-			if (result && result.success) {
-				addLog(`${loginType} Succeeded: ${result.message}`);
-				updateTrafficInfo();
+			await ipcRenderer.invoke(loginType, {username, password});
+			await sleep(5000); // 等待5s网络登录
+			const result = await runNetworkCheck();
+			if (result.ipv4Access && result.ipv6Access) {
+				addLog(`${loginType} 认证成功!`, 'info');
 			} else {
-				const message = result ? result.message : '未知错误';
-				addLog(`${loginType} Failed: ${message}`);
+				addLog(`${loginType} 认证失败：认证后仍无网络连接`, 'error');
 			}
 		} catch (error) {
-			addLog(`${loginType} error: ${error.message}`);
+			addLog(`${loginType} 认证失败：` + error.message, 'error');
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
+			loginBtn.textContent = oldText;
+			isLoginInProgress = false;
 		}
 	}
 	

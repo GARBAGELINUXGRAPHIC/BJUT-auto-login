@@ -176,16 +176,7 @@ if (!gotTheLock) {
 	
 	ipcMain.handle('network-login', async (event, credentials) => {
 		const {username, password} = credentials;
-		eventBus.log('Login process invoked...');
-		
-		try {
-			const result = await login(username, password);
-			eventBus.log('Login process finished.');
-			return result;
-		} catch (error) {
-			eventBus.log(`Critical authentication error: ${error.message}`);
-			return {success: false, message: error.message};
-		}
+		return await login(username, password);
 	});
 	
 	// Specific Login/Logout Handlers
