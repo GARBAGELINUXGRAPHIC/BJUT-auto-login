@@ -166,12 +166,18 @@ async function susheLogin(username, password) {
 	    const res = await axios.get(loginUrl);
         console.log(res.data);
         const responseData = parse_respond(res.data);
-        if (parseInt(responseData.result) === 1) {
-            const msg = `宿舍网登录成功：${responseData.msg}`;
+        
+        // 等待网络连接建立
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 通过实际网络连接判断登录是否成功，而不是依赖API返回值
+        const connection_res = await checkConnectivity();
+        if (connection_res.ipv4Access) {
+            const msg = `宿舍网登录成功 (API返回: ${responseData.msg || 'N/A'})`;
             eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error(`${responseData.msg}`);
+            throw new Error(`登录后仍无IPv4连接 (API返回: ${responseData.msg || 'N/A'})`);
         }
     } catch (error) {
         eventBus.log(`宿舍网登录错误: ${error.message}`, 'error');
@@ -235,12 +241,17 @@ async function wlgnLogin(username, password) {
         console.log(response);
         const data = parse_respond(response.data);
 
-        if (parseInt(data.result) === 1) {
-            const msg = `wlgn登录成功: ${data.msga || 'N/A'}`;
+        // 等待网络连接建立
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // 通过实际网络连接判断登录是否成功，而不是依赖API返回值
+        const connection_res = await checkConnectivity();
+        if (connection_res.ipv4Access) {
+            const msg = `wlgn登录成功 (API返回: ${data.msga || 'N/A'})`;
             eventBus.log(msg, 'info');
             return {success: true, message: msg};
         } else {
-            throw new Error(`Api返回结果：${data.result}, 信息: ${data.msga || 'N/A'}`);
+            throw new Error(`登录后仍无IPv4连接 (API返回结果：${data.result}, 信息: ${data.msga || 'N/A'})`);
         }
     } catch (error) {
         eventBus.log(`wlgn登录错误: ${error.message}`, 'error');
