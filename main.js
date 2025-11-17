@@ -240,7 +240,7 @@ if (!gotTheLock) {
 		try {
 			eventBus.log('正在检测更新...', 'info');
 			eventBus.log('Current Version: ' + app.getVersion()); // X.Y.Z
-			const res = await axios.get('https://ipv4.quitsense.cn/api/bjutautologin/getLatestTag'); // returns 'VX.Y.Z', github release tag
+			const res = await axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestTag'); // returns 'VX.Y.Z', github release tag
 			if (!res.data.success) {
 				throw new Error('无法获取最新版本: ' + res.data.message);
 			}
