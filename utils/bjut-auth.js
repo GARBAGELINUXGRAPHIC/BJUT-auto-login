@@ -6,6 +6,46 @@ const cheerio = require('cheerio');
 const eventBus = require('./event-bus');
 require('os');
 
+// Cache MAC address for the current session
+let cachedMacAddress = null;
+
+/**
+ * Get the MAC address of the primary network interface
+ * @returns {Promise<string>} MAC address without colons/hyphens (e.g., "aabbccddeeff")
+ */
+async function getMacAddress() {
+	// Return cached MAC if already generated this session
+	if (cachedMacAddress) {
+		return cachedMacAddress;
+	}
+	
+	try {
+		const networkInterfaces = await si.networkInterfaces();
+		// Find the first interface that has a MAC address and is not internal/loopback
+		const activeInterface = networkInterfaces.find(iface => 
+			iface.mac && 
+			!iface.internal
+		);
+		
+		if (activeInterface && activeInterface.mac) {
+			// Remove colons and convert to lowercase
+			cachedMacAddress = activeInterface.mac.replace(/:/g, '').toLowerCase();
+			eventBus.log('已获得MAC地址：' + cachedMacAddress, 'debug');
+			return cachedMacAddress;
+		}
+		
+		eventBus.log('无法获取MAC地址，已随机生成并缓存', 'warn');
+	} catch (error) {
+		eventBus.log(`获取MAC地址失败: ${error.message}，已随机生成并缓存`, 'warn');
+	}
+	
+	// Generate random MAC address for this session if unable to get real one
+	cachedMacAddress = Array.from({length: 6}, () => 
+		Math.floor(Math.random() * 256).toString(16).padStart(2, '0')
+	).join('');
+	return cachedMacAddress;
+}
+
 async function getBJUTauthServersReachability() {
 	const servers = {
 		"sushe": 'http://10.21.221.98/',
@@ -206,7 +246,7 @@ async function lgn6Login(username, password, duallogin = false) {
 		eventBus.log('尝试lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)登录', 'info');
 		const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
 		const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
-			DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''
+			DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''/*, wlan_user_mac: getMacAddress() */
 		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
 		console.log(response.data); // html with js dynamic load. consider ipv6 access verification
 		eventBus.log('lgn6返回信息：' + response.data, 'debug');

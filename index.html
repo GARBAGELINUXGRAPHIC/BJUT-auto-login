@@ -979,7 +979,7 @@
 		}
 		
 		trafficPercentLabel.style.display = 'inline';
-		const ratio = Math.max(0, Math.min(1, usedBytes / totalBytes));
+		const ratio = Math.max(0, usedBytes / totalBytes);
 		const percent = ratio * 100;
 		
 		trafficPie.style.setProperty('--traffic-percent', percent);
