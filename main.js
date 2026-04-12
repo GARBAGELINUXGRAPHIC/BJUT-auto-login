@@ -4,6 +4,7 @@ const keytar = require('keytar');
 const Store = require('electron-store');
 const {
 	login,
+	checkUrl,
 	checkConnectivity,
 	susheLogin,
 	wlgnLogin,
@@ -48,7 +49,7 @@ if (!gotTheLock) {
 	function createWindow() {
 		mainWindow = new BrowserWindow({
 			width: 900,
-			height: 700,
+			height: 730,
 			frame: true,
 			webPreferences: {
 				nodeIntegration: true,
@@ -172,6 +173,10 @@ if (!gotTheLock) {
 			setTrayStatus('default');
 		}
 		return connectivity;
+	});
+
+	ipcMain.handle('test-connectivity-url', async (event, url) => {
+		return await checkUrl(url);
 	});
 	
 	ipcMain.handle('network-login', async (event, credentials) => {

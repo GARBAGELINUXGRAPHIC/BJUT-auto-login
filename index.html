@@ -581,6 +581,131 @@
 			background: rgba(239, 68, 68, .08);
 			transition: background var(--theme-transition) ease, border-color var(--theme-transition) ease, color var(--theme-transition) ease;
 		}
+
+		.overlay-field-row {
+			display: grid;
+			grid-template-columns: 1fr auto;
+			gap: 8px;
+			align-items: stretch;
+			margin-bottom: 12px;
+		}
+
+		.overlay-tip {
+			margin: 4px 0 0;
+			font-size: 12px;
+			font-weight: 500;
+			color: var(--muted);
+		}
+
+		.status-btn {
+			position: relative;
+			overflow: hidden;
+			min-width: 76px;
+		}
+
+		.status-btn.compact {
+			min-width: 52px;
+		}
+
+		.status-btn-track {
+			display: grid;
+			place-items: center;
+			width: 100%;
+			height: 100%;
+		}
+
+		.status-btn-text,
+		.status-btn-state {
+			grid-area: 1 / 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			width: 100%;
+			height: 100%;
+			transition: transform .28s ease, opacity .28s ease;
+		}
+
+		.status-btn-state {
+			opacity: 0;
+			transform: translateX(-18px);
+		}
+
+		.status-btn[data-state="idle"] .status-btn-text {
+			opacity: 1;
+			transform: translateX(0);
+		}
+
+		.status-btn[data-state="idle"] .status-btn-state {
+			opacity: 0;
+			transform: translateX(-18px);
+		}
+
+		.status-btn[data-state="loading"] .status-btn-text,
+		.status-btn[data-state="success"] .status-btn-text,
+		.status-btn[data-state="error"] .status-btn-text {
+			opacity: 0;
+			transform: translateX(18px);
+		}
+
+		.status-btn[data-state="loading"] .status-btn-state,
+		.status-btn[data-state="success"] .status-btn-state,
+		.status-btn[data-state="error"] .status-btn-state {
+			opacity: 1;
+			transform: translateX(0);
+		}
+
+		.status-btn-spinner {
+			width: 14px;
+			height: 14px;
+			border-radius: 50%;
+			border: 2px solid rgba(255, 255, 255, .25);
+			border-top-color: currentColor;
+			animation: spin .8s linear infinite;
+		}
+
+		.status-btn-icon {
+			width: 18px;
+			height: 18px;
+			border-radius: 50%;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
+			color: #fff;
+			font-size: 12px;
+			font-weight: 700;
+		}
+
+		.status-btn-icon.success {
+			background: #16a34a;
+		}
+
+		.status-btn-icon.error {
+			background: #dc2626;
+		}
+
+		.status-btn[data-state="loading"] {
+			color: #cbd5e1;
+		}
+
+		.status-btn[data-state="success"] {
+			border-color: rgba(34, 197, 94, .35);
+			background: rgba(34, 197, 94, .08);
+		}
+
+		.status-btn[data-state="error"] {
+			border-color: rgba(239, 68, 68, .35);
+			background: rgba(239, 68, 68, .08);
+		}
+
+		@keyframes spin {
+			from {
+				transform: rotate(0deg);
+			}
+			to {
+				transform: rotate(360deg);
+			}
+		}
 	</style>
 </head>
 <body>
@@ -604,7 +729,14 @@
 						<div class="input-wrapper" data-ripple>
 							<input class="input" type="text" id="username" placeholder="请输入学号" style="height: 38px">
 						</div>
-						<button data-ripple id="loginBtn" class="btn" style="height: 38px; margin-top: 2px;">手动认证一次</button>
+						<button data-ripple id="loginBtn" class="btn status-btn" data-state="idle" style="height: 38px; margin-top: 2px;">
+							<span class="status-btn-track">
+								<span class="status-btn-text">手动认证一次</span>
+								<span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span>
+								<span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span>
+								<span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span>
+							</span>
+						</button>
 					</div>
 					<div class="field">
 						<label class="label" for="password">密码</label>
@@ -622,11 +754,11 @@
 				</div>
 				<hr style="opacity: 0.1; margin-top: 10px">
 				<div class="row-2" style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
-					<button data-ripple id="susheLoginBtn" class="btn">宿舍登录</button>
-					<button data-ripple id="wlgnLoginBtn" class="btn">wlgn登录</button>
-					<button data-ripple id="lgn6LoginBtn" class="btn">lgn6仅ipv6登录</button>
-					<button data-ripple id="lgnLogin46Btn" class="btn">lgn双栈登录</button>
-					<button data-ripple id="lgn6Login46Btn" class="btn">lgn6双栈登录</button>
+					<button data-ripple id="susheLoginBtn" class="btn status-btn" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">宿舍登录</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+					<button data-ripple id="wlgnLoginBtn" class="btn status-btn" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">wlgn登录</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+					<button data-ripple id="lgn6LoginBtn" class="btn status-btn" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">lgn6仅ipv6登录</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+					<button data-ripple id="lgnLogin46Btn" class="btn status-btn" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">lgn双栈登录</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+					<button data-ripple id="lgn6Login46Btn" class="btn status-btn" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">lgn6双栈登录</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
 					<!--button data-ripple id="susheLogoutBtn" class="btn"
 							style="background-color: var(--danger); border-color: transparent; color: #e5e7eb">宿舍登出
 					</button-->
@@ -640,17 +772,17 @@
 				<h2 class="section-title">网络状态</h2>
 				<div class="net-row" style="justify-content:space-between;">
 					<div class="net-row" style="height: 100%;">
-						<div id="ipv4-status" class="pill" style="width: 114px;">IPv4: Unknown</div>
-						<div id="ipv6-status" class="pill" style="width: 114px;">IPv6: Unknown</div>
+						<div id="ipv4-status" class="pill" style="width: 110px;">IPv4: Unknown</div>
+						<div id="ipv6-status" class="pill" style="width: 110px;">IPv6: Unknown</div>
 					</div>
-					<button data-ripple id="refresh-btn" class="btn">刷新</button>
+					<button data-ripple id="refresh-btn" class="btn status-btn compact" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">刷新</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
 				</div>
 				<div class="muted" id="net-last-checked" style="margin-top:6px;">上次检查：—</div>
 			</section>
 			
 			<section class="card">
 				<h2 class="section-title">设置</h2>
-				<div class="row-2" style="margin-top:0px;">
+				<div class="row-2" style="margin-top:0;">
 					<div class="switch-row" style="height: 38px;">
 						<span>轮询间隔</span>
 						<select id="interval-select">
@@ -682,6 +814,9 @@
 							<option value="dark">深色</option>
 						</select>
 					</div>
+					<button data-ripple id="check-updates-btn" class="btn status-btn" data-state="idle" style="height: 100%;"><span class="status-btn-track"><span class="status-btn-text">检查更新</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+				</div>
+				<div class="row-2" style="margin-top:8px;">
 					<div class="switch-row">
 						<span>开机自启</span>
 						<label class="switch" title="系统登录后自动启动">
@@ -689,9 +824,6 @@
 							<span class="slider"></span>
 						</label>
 					</div>
-				</div>
-				<div class="row-2" style="margin-top:8px;">
-					<button data-ripple id="check-updates-btn" class="btn" style="height: 100%;">检查更新</button>
 					<div class="switch-row">
 						<span>自动更新</span>
 						<label class="switch" title="启动时自动检查更新">
@@ -699,6 +831,9 @@
 							<span class="slider"></span>
 						</label>
 					</div>
+				</div>
+				<div class="row-2" style="margin-top:8px; grid-template-columns:1fr;">
+					<button data-ripple id="configure-ipv4-ipv6-connection-test" class="btn" style="height: 100%;">配置IPv4/IPv6连通性测试接口URL</button>
 				</div>
 			</section>
 		</div>
@@ -750,6 +885,56 @@
 				<textarea id="logArea" class="log" readonly></textarea>
 			</section>
 		</div>
+	</div>
+</div>
+
+<div id="configure-ipv4-ipv6-connection-test-overlay"
+	 style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
+	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
+		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+			<h2 class="section-title" style="margin: 0;">配置连通性测试 URL</h2>
+			<button data-ripple id="close-configure-ipv4-ipv6-connection-test-btn" class="btn"
+					style="padding: 4px; line-height: 1; border-radius: 1000px; aspect-ratio: 1; text-align: center">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+					 style="width: 20px; height: 20px; display: block; place-self: center">
+					<path fill="currentColor"
+						  d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+				</svg>
+			</button>
+		</div>
+		<div class="field" style="margin-bottom: 10px;">
+			<label class="label" for="ipv4-test-url">IPv4 测试网址</label>
+			<div class="overlay-field-row">
+				<div class="input-wrapper">
+					<input class="input" type="url" id="ipv4-test-url" placeholder="请输入 IPv4 测试 URL" style="height: 38px;">
+				</div>
+				<button data-ripple id="test-ipv4-url-btn" class="btn status-btn" data-state="idle" style="height: 38px;">
+					<span class="status-btn-track">
+						<span class="status-btn-text">测试</span>
+						<span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span>
+						<span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span>
+						<span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span>
+					</span>
+				</button>
+			</div>
+		</div>
+		<div class="field">
+			<label class="label" for="ipv6-test-url">IPv6 测试网址</label>
+			<div class="overlay-field-row">
+				<div class="input-wrapper">
+					<input class="input" type="url" id="ipv6-test-url" placeholder="请输入 IPv6 测试 URL" style="height: 38px;">
+				</div>
+				<button data-ripple id="test-ipv6-url-btn" class="btn status-btn" data-state="idle" style="height: 38px;">
+					<span class="status-btn-track">
+						<span class="status-btn-text">测试</span>
+						<span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span>
+						<span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span>
+						<span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span>
+					</span>
+				</button>
+			</div>
+		</div>
+		<p id="connectivity-test-url-status" class="overlay-tip">输入后自动保存，网络检测会直接使用这里的 URL。</p>
 	</div>
 </div>
 
@@ -810,6 +995,14 @@
 	const helpBtn = document.getElementById('helpBtn');
 	const helpOverlay = document.getElementById('help-overlay');
 	const closeHelpBtn = document.getElementById('close-help-btn');
+	const configureIpv4Ipv6ConnectionTestBtn = document.getElementById('configure-ipv4-ipv6-connection-test');
+	const configureIpv4Ipv6ConnectionTestOverlay = document.getElementById('configure-ipv4-ipv6-connection-test-overlay');
+	const closeConfigureIpv4Ipv6ConnectionTestBtn = document.getElementById('close-configure-ipv4-ipv6-connection-test-btn');
+	const ipv4TestUrlInput = document.getElementById('ipv4-test-url');
+	const ipv6TestUrlInput = document.getElementById('ipv6-test-url');
+	const testIpv4UrlBtn = document.getElementById('test-ipv4-url-btn');
+	const testIpv6UrlBtn = document.getElementById('test-ipv6-url-btn');
+	const connectivityTestUrlStatus = document.getElementById('connectivity-test-url-status');
 	const checkUpdatesBtn = document.getElementById('check-updates-btn');
 	const logLevelSelect = document.getElementById('log-level-select');
 	const themeSelect = document.getElementById('theme-select');
@@ -857,7 +1050,63 @@
 		if (savedInterval) intervalSelect.value = savedInterval;
 		const startOnLogin = await ipcRenderer.invoke('get-setting', 'startOnLogin');
 		if (startOnLogin) startOnLoginSwitch.checked = true;
+		const savedIpv4TestUrl = await ipcRenderer.invoke('get-setting', 'ipv4TestUrl');
+		const savedIpv6TestUrl = await ipcRenderer.invoke('get-setting', 'ipv6TestUrl');
+		ipv4TestUrlInput.value = savedIpv4TestUrl || 'https://api-ipv4.ip.sb/ip';
+		ipv6TestUrlInput.value = savedIpv6TestUrl || 'https://api-ipv6.ip.sb/ip';
 		await loadCredentials();
+	}
+
+	async function saveConnectivityTestUrl(key, value) {
+		await ipcRenderer.invoke('set-setting', {key, value: value.trim()});
+		connectivityTestUrlStatus.textContent = '已自动保存，新的网络检查会立即使用。';
+	}
+
+	const debouncedSaveIpv4TestUrl = debounce(() => saveConnectivityTestUrl('ipv4TestUrl', ipv4TestUrlInput.value), 500);
+	const debouncedSaveIpv6TestUrl = debounce(() => saveConnectivityTestUrl('ipv6TestUrl', ipv6TestUrlInput.value), 500);
+
+	function setTestButtonState(button, state = 'idle') {
+		button.dataset.state = state;
+		const states = button.querySelectorAll('.status-btn-state');
+		states.forEach(node => {
+			node.style.display = node.dataset.role === state ? 'flex' : 'none';
+		});
+	}
+
+	async function testConnectivityUrl(version, input, button) {
+		const url = input.value.trim();
+		if (!url) {
+			addLog(`${version} 测试 URL 不能为空`, 'error');
+			connectivityTestUrlStatus.textContent = `${version} 测试 URL 不能为空。`;
+			setTestButtonState(button, 'error');
+			setTimeout(() => setTestButtonState(button, 'idle'), 1200);
+			return;
+		}
+
+		button.disabled = true;
+		setTestButtonState(button, 'loading');
+		connectivityTestUrlStatus.textContent = `正在测试 ${version} URL...`;
+		try {
+			const ok = await ipcRenderer.invoke('test-connectivity-url', url);
+			if (ok) {
+				addLog(`${version} 测试 URL 可访问: ${url}`, 'info');
+				connectivityTestUrlStatus.textContent = `${version} 测试成功：${url}`;
+				setTestButtonState(button, 'success');
+			} else {
+				addLog(`${version} 测试 URL 不可访问: ${url}`, 'warn');
+				connectivityTestUrlStatus.textContent = `${version} 测试失败，请检查：${url}`;
+				setTestButtonState(button, 'error');
+			}
+		} catch (error) {
+			addLog(`${version} 测试异常: ${error.message}`, 'error');
+			connectivityTestUrlStatus.textContent = `${version} 测试异常：${error.message}`;
+			setTestButtonState(button, 'error');
+		} finally {
+			setTimeout(() => {
+				button.disabled = false;
+				setTestButtonState(button, 'idle');
+			}, 1200);
+		}
 	}
 	
 	function saveCredentials() {
@@ -902,8 +1151,7 @@
 		isLoginInProgress = true;
 		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
 		buttons.forEach(btn => btn.disabled = true);
-		const oldText = loginBtn.textContent;
-		loginBtn.textContent = '认证中...';
+		setTestButtonState(loginBtn, 'loading');
 		
 		try {
 			await ipcRenderer.invoke('network-login', {username, password});
@@ -911,15 +1159,38 @@
 				const accessibility = await runNetworkCheck();
 				if(accessibility.ipv4Access && accessibility.ipv6Access) {
 					addLog("认证成功", 'info')
+					setTestButtonState(loginBtn, 'success');
 				} else {
 					addLog('认证失败：认证后仍无网络连接', 'error')
+					setTestButtonState(loginBtn, 'error');
 				}
 		} catch (error) {
 			addLog('认证出错: ' + error.message, 'error');
+			setTestButtonState(loginBtn, 'error');
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
-			loginBtn.textContent = oldText;
 			isLoginInProgress = false;
+			setTimeout(() => setTestButtonState(loginBtn, 'idle'), 1200);
+		}
+	}
+
+	async function handleRefreshClick() {
+		refreshBtn.disabled = true;
+		setTestButtonState(refreshBtn, 'loading');
+		try {
+			const connectivity = await runNetworkCheck();
+			if (connectivity && (connectivity.ipv4Access || connectivity.ipv6Access)) {
+				setTestButtonState(refreshBtn, 'success');
+			} else {
+				setTestButtonState(refreshBtn, 'error');
+			}
+		} catch (error) {
+			setTestButtonState(refreshBtn, 'error');
+		} finally {
+			setTimeout(() => {
+				refreshBtn.disabled = false;
+				setTestButtonState(refreshBtn, 'idle');
+			}, 1200);
 		}
 	}
   
@@ -1116,8 +1387,12 @@
 	
 	usernameInput.addEventListener('input', debouncedSaveCredentials);
 	passwordInput.addEventListener('input', debouncedSaveCredentials);
+	ipv4TestUrlInput.addEventListener('input', debouncedSaveIpv4TestUrl);
+	ipv6TestUrlInput.addEventListener('input', debouncedSaveIpv6TestUrl);
 	loginBtn.addEventListener('click', handleLogin);
-	refreshBtn.addEventListener('click', runNetworkCheck);
+	refreshBtn.addEventListener('click', handleRefreshClick);
+	testIpv4UrlBtn.addEventListener('click', () => testConnectivityUrl('IPv4', ipv4TestUrlInput, testIpv4UrlBtn));
+	testIpv6UrlBtn.addEventListener('click', () => testConnectivityUrl('IPv6', ipv6TestUrlInput, testIpv6UrlBtn));
 	
 	intervalSelect.addEventListener('change', () => {
 		ipcRenderer.send('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
@@ -1174,11 +1449,46 @@
 			closeHelpDialog();
 		}
 	});
-	
+
+	configureIpv4Ipv6ConnectionTestBtn.addEventListener('click', () => {
+		configureIpv4Ipv6ConnectionTestOverlay.style.display = 'flex';
+		const card = configureIpv4Ipv6ConnectionTestOverlay.querySelector('.card');
+		card.style.animation = 'overlay-appear .2s ease-out forwards';
+		// Trigger background fade-in
+		setTimeout(() => {
+			configureIpv4Ipv6ConnectionTestOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		}, 10);
+	});
+
+	function closeConfigureIpv4Ipv6ConnectionTestDialog() {
+		const card = configureIpv4Ipv6ConnectionTestOverlay.querySelector('.card');
+		card.style.animation = 'overlay-disappear .2s ease-out forwards';
+		// Trigger background fade-out
+		configureIpv4Ipv6ConnectionTestOverlay.style.backgroundColor = 'rgba(0,0,0,0)';
+		setTimeout(() => {
+			configureIpv4Ipv6ConnectionTestOverlay.style.display = 'none';
+		}, 200); // Match animation duration
+	}
+
+	closeConfigureIpv4Ipv6ConnectionTestBtn.addEventListener('click', closeConfigureIpv4Ipv6ConnectionTestDialog);
+
+	configureIpv4Ipv6ConnectionTestOverlay.addEventListener('click', (e) => {
+		if (e.target === configureIpv4Ipv6ConnectionTestOverlay) {
+			closeConfigureIpv4Ipv6ConnectionTestDialog();
+		}
+	});
 	
 	async function handleSpecificLogin(loginType) {
 		const username = usernameInput.value.trim();
 		const password = passwordInput.value.trim();
+		const buttonMap = {
+			'sushe-login': susheLoginBtn,
+			'wlgn-login': wlgnLoginBtn,
+			'lgn6-login': lgn6LoginBtn,
+			'lgn-login-46': lgnLogin46Btn,
+			'lgn6-login-46': lgn6Login46Btn
+		};
+		const activeButton = buttonMap[loginType];
 		
 		// Logout doesn't need credentials
 		if (loginType !== 'sushe-logout' && (!username || !password)) {
@@ -1189,9 +1499,8 @@
 		// Disable all buttons
 		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
 		buttons.forEach(btn => btn.disabled = true);
-		const oldText = loginBtn.textContent;
 		isLoginInProgress = true;
-		loginBtn.textContent = '认证中...';
+		if (activeButton) setTestButtonState(activeButton, 'loading');
 		addLog(`Executing ${loginType}...`);
 		
 		try {
@@ -1200,33 +1509,41 @@
 			const result = await runNetworkCheck();
 			if (result.ipv4Access && result.ipv6Access) {
 				addLog(`${loginType} 认证成功!`, 'info');
+				if (activeButton) setTestButtonState(activeButton, 'success');
 			} else {
 				addLog(`${loginType} 认证失败：认证后仍无网络连接`, 'error');
+				if (activeButton) setTestButtonState(activeButton, 'error');
 			}
 		} catch (error) {
 			addLog(`${loginType} 认证失败：` + error.message, 'error');
+			if (activeButton) setTestButtonState(activeButton, 'error');
 		} finally {
 			buttons.forEach(btn => btn.disabled = false);
-			loginBtn.textContent = oldText;
 			isLoginInProgress = false;
+			if (activeButton) {
+				setTimeout(() => setTestButtonState(activeButton, 'idle'), 1200);
+			}
 		}
 	}
 	
 	// --- Check Updates Button ---
 	checkUpdatesBtn.addEventListener('click', async () => {
 		checkUpdatesBtn.disabled = true;
-		const oldText = checkUpdatesBtn.textContent;
-		checkUpdatesBtn.textContent = '检查中...';
+		setTestButtonState(checkUpdatesBtn, 'loading');
 		addLog('Manually checking for updates...');
 		
 		try {
 			await ipcRenderer.invoke('check-updates');
 			addLog('Update check completed.');
+			setTestButtonState(checkUpdatesBtn, 'success');
 		} catch (error) {
 			addLog(`Update check failed: ${error.message}`);
+			setTestButtonState(checkUpdatesBtn, 'error');
 		} finally {
-			checkUpdatesBtn.disabled = false;
-			checkUpdatesBtn.textContent = oldText;
+			setTimeout(() => {
+				checkUpdatesBtn.disabled = false;
+				setTestButtonState(checkUpdatesBtn, 'idle');
+			}, 1200);
 		}
 	});
 	
