@@ -8,8 +8,8 @@ const eventBus = require('./event-bus');
 require('os');
 
 const store = new Store();
-const DEFAULT_IPV4_TEST_URL = 'https://api-ipv4.ip.sb/ip';
-const DEFAULT_IPV6_TEST_URL = 'https://api-ipv6.ip.sb/ip';
+const DEFAULT_IPV4_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt';
+const DEFAULT_IPV6_TEST_URL = 'http://ipv6.msftconnecttest.com/connecttest.txt';
 
 // Cache MAC address for the current session
 let cachedMacAddress = null;
