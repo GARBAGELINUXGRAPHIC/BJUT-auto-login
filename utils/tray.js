@@ -33,11 +33,7 @@ function createTray(mainWindow, quitApp) {
         { label: '显示主界面', click: () => { mainWindow.show(); } },
         { label: '打开开发者工具', click: () => { mainWindow.webContents.openDevTools(); } },
         { type: 'separator' },
-        {
-            label: '退出', click: () => {
-                quitApp();
-            }
-        }
+        { label: '退出', click: () => { quitApp(); } }
     ]);
 
     tray.setToolTip('BJUT-Network-Autologin');
@@ -48,7 +44,7 @@ function createTray(mainWindow, quitApp) {
 }
 
 function setTrayStatus(status) {
-    if (tray) {
+    if (tray && !isMac) {
         const icon = loadStatusIcon(status);
         tray.setImage(icon);
     }

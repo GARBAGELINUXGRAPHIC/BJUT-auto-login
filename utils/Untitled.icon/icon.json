@@ -11,6 +11,22 @@
           "glass" : false,
           "image-name" : "basic.png",
           "name" : "basic",
+          "idiom" : "universal",
+          "position" : {
+            "scale" : 1.8,
+            "translation-in-points" : [
+              0,
+              -16
+            ]
+          }
+        },
+        {
+          "blend-mode" : "normal",
+          "fill" : "automatic",
+          "glass" : false,
+          "image-name" : "basic-mac.png",
+          "name" : "basic-mac",
+          "idiom" : "mac",
           "position" : {
             "scale" : 1.8,
             "translation-in-points" : [
