@@ -155,8 +155,8 @@ if (!gotTheLock) {
 	
 	function createWindow() {
 		mainWindow = new BrowserWindow({
-			width: 900,
-			height: 730,
+			width: 880,
+			height: 727,
 			frame: true,
 			webPreferences: {
 				nodeIntegration: true,
