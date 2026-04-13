@@ -342,6 +342,7 @@
 		}
 		
 		.pill {
+			width: 114px;
 			text-align: center;
 			align-items: center;
 			gap: 6px;
@@ -604,7 +605,7 @@
 		}
 
 		.status-btn.compact {
-			min-width: 52px;
+			min-width: 48px;
 		}
 
 		.status-btn-track {
@@ -772,8 +773,8 @@
 				<h2 class="section-title">网络状态</h2>
 				<div class="net-row" style="justify-content:space-between;">
 					<div class="net-row" style="height: 100%;">
-						<div id="ipv4-status" class="pill" style="width: 110px;">IPv4: Unknown</div>
-						<div id="ipv6-status" class="pill" style="width: 110px;">IPv6: Unknown</div>
+						<div id="ipv4-status" class="pill">IPv4: Unknown</div>
+						<div id="ipv6-status" class="pill">IPv6: Unknown</div>
 					</div>
 					<button data-ripple id="refresh-btn" class="btn status-btn compact" data-state="idle"><span class="status-btn-track"><span class="status-btn-text">刷新</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
 				</div>
