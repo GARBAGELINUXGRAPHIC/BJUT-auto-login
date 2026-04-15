@@ -79,7 +79,7 @@ async function getBJUTauthServersReachability() {
 
 const checkUrl = async (url) => {
 	try {
-		const response = await axios.get(url, {timeout: 3000});
+		const response = await axios.get(url, {timeout: 3000, maxRedirects: 0});
 		return response.status > 0;
 	} catch (error) {
 		return false;
