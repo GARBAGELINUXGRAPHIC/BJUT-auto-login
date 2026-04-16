@@ -1046,7 +1046,6 @@
 	// --- State ---
 	let isAutoAuthEnabled = true;
 	let isLoginInProgress = false;
-	let pollingIntervalId = null;
 	let userHasScrolled = false;
 	let scrollTimeout = null;
 	let currentLogLevel = 'info';
@@ -1084,6 +1083,11 @@
 		addLog('load settings...');
 		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
 		if (savedInterval) intervalSelect.value = savedInterval;
+		const savedAutoAuthEnabled = await ipcRenderer.invoke('get-setting', 'autoAuthEnabled');
+		if (savedAutoAuthEnabled !== null && savedAutoAuthEnabled !== undefined) {
+			isAutoAuthEnabled = savedAutoAuthEnabled;
+			autoAuthSwitch.checked = savedAutoAuthEnabled;
+		}
 		const startOnLogin = await ipcRenderer.invoke('get-setting', 'startOnLogin');
 		if (startOnLogin) startOnLoginSwitch.checked = true;
 		const savedIpv4TestUrl = await ipcRenderer.invoke('get-setting', 'ipv4TestUrl');
@@ -1201,12 +1205,54 @@
 	}
 	
 	// --- Polling & Core ---
-	function setupPolling() {
-		if (pollingIntervalId) clearInterval(pollingIntervalId);
-		const intervalMs = parseInt(intervalSelect.value, 10);
-		pollingIntervalId = setInterval(runNetworkCheck, intervalMs);
-		const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
-		addLog(`轮询间隔已设为${selectedOption}`, 'info');
+	function applyConnectivityStatus(connectivity, checkedAt = Date.now()) {
+		if (!connectivity) return;
+		
+
+		const timeString = new Date(checkedAt).toLocaleTimeString();
+		ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access ? 'OK' : 'Failed'}`;
+		ipv4Status.className = `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
+		ipv6Status.textContent = `IPv6: ${connectivity.ipv6Access ? 'OK' : 'Failed'}`;
+		ipv6Status.className = `pill ${connectivity.ipv6Access ? 'net-ok' : 'net-fail'}`;
+		netLastChecked.textContent = `上次检查：${timeString}`;
+	}
+
+	function applyTrafficInfo(trafficInfo, checkedAt = Date.now()) {
+		if (!trafficInfo) {
+			usedTrafficStatus.textContent = 'Unknown';
+			totalTrafficStatus.textContent = 'Unknown';
+			balanceStatus.textContent = 'Unknown';
+			trafficLastUpdated.textContent = '上次更新：—';
+			updateTrafficPie(NaN, NaN);
+			return;
+		}
+
+		usedTrafficStatus.textContent = trafficInfo.usedTraffic;
+		totalTrafficStatus.textContent = trafficInfo.totalTraffic;
+		balanceStatus.textContent = trafficInfo.balance;
+		trafficLastUpdated.textContent = `上次更新：${new Date(checkedAt).toLocaleTimeString()}`;
+
+		const usedBytes = parseSize(trafficInfo.usedTraffic);
+		const totalBytes = parseSize(trafficInfo.totalTraffic);
+		updateTrafficPie(usedBytes, totalBytes);
+	}
+
+	function applyPollingStatus(status, shouldLog = true) {
+		if (!status || !status.connectivity) {
+			return null;
+		}
+
+		applyConnectivityStatus(status.connectivity, status.checkedAt);
+		applyTrafficInfo(status.trafficInfo, status.checkedAt);
+
+		if (shouldLog) {
+			addLog(
+				`检查结果：ipv4 = ${status.connectivity.ipv4Access}, ipv6 = ${status.connectivity.ipv6Access}`,
+				'debug'
+			);
+		}
+
+		return status.connectivity;
 	}
 	
 	async function handleLogin() {
@@ -1275,25 +1321,8 @@
 		addLog('运行连通性测试...');
 		try {
 			const connectivity = await ipcRenderer.invoke('check-connectivity');
-			const timeString = new Date().toLocaleTimeString();
-			
-			ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access ? 'OK' : 'Failed'}`;
-			ipv4Status.className = `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
-			
-			ipv6Status.textContent = `IPv6: ${connectivity.ipv6Access ? 'OK' : 'Failed'}`;
-			ipv6Status.className = `pill ${connectivity.ipv6Access ? 'net-ok' : 'net-fail'}`;
-			
-			netLastChecked.textContent = `上次检查：${timeString}`;
-			
+			applyConnectivityStatus(connectivity);
 			addLog('检查结果：ipv4 = ' + connectivity.ipv4Access + ', ipv6 = ' + connectivity.ipv6Access);
-			
-				if(connectivity.ipv4Access && connectivity.ipv6Access) {
-		    updateTrafficInfo();
-			} else if(!isLoginInProgress && isAutoAuthEnabled) {
-			  addLog('无网络，尝试自动登录...', 'info');
-			  await handleLogin();
-			}
-			
 			return connectivity;
 		} catch (error) {
 			addLog(`网络连通性检查错误: ${error.message}`, 'error');
@@ -1361,8 +1390,10 @@
 	document.addEventListener('DOMContentLoaded', async () => {
 		await loadSettings();
 		applyUpdateInfo(await ipcRenderer.invoke('get-pending-update-info'));
-		setupPolling();
-		await runNetworkCheck();
+		const latestStatus = await ipcRenderer.invoke('get-latest-polling-status');
+		if (latestStatus) {
+			applyPollingStatus(latestStatus, false);
+		}
 		
 		// Load auto-update setting
 		const autoUpdateEnabled = await ipcRenderer.invoke('get-setting', 'autoUpdate');
@@ -1469,13 +1500,15 @@
 	testIpv6UrlBtn.addEventListener('click', () => testConnectivityUrl('IPv6', ipv6TestUrlInput, testIpv6UrlBtn));
 	
 	intervalSelect.addEventListener('change', () => {
-		ipcRenderer.send('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
-		setupPolling();
+		ipcRenderer.invoke('set-setting', {key: 'pollingInterval', value: intervalSelect.value});
+		const selectedOption = intervalSelect.options[intervalSelect.selectedIndex].text;
+		addLog(`主进程轮询间隔已设为${selectedOption}`, 'info');
 	});
 	
-	autoAuthSwitch.addEventListener('change', (e) => {
+	autoAuthSwitch.addEventListener('change', async (e) => {
 		isAutoAuthEnabled = e.target.checked;
-		addLog(`Auto-authentication is now ${isAutoAuthEnabled ? 'enabled' : 'disabled'}.`);
+		await ipcRenderer.invoke('set-setting', {key: 'autoAuthEnabled', value: isAutoAuthEnabled});
+		addLog(`自动认证已${isAutoAuthEnabled ? '启用' : '禁用'}`, 'info');
 	});
 	
 	startOnLoginSwitch.addEventListener('change', (e) => {
@@ -1705,6 +1738,10 @@
 	ipcRenderer.on('show-update-popup', (event, updateInfo) => {
 		applyUpdateInfo(updateInfo);
 		openReleaseNotesDialog();
+	});
+
+	ipcRenderer.on('polling-status', (event, status) => {
+		applyPollingStatus(status, false);
 	});
 </script>
 </body>

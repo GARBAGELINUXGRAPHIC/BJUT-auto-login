@@ -14,7 +14,7 @@ const {
 	updateTrafficData
 } = require('./utils/bjut-auth');
 const eventBus = require('./utils/event-bus');
-const {createTray, setTrayStatus} = require('./utils/tray');
+const {createTray} = require('./utils/tray');
 const quitAppModule = require('./utils/quitApp');
 const axios = require('axios');
 
@@ -136,6 +136,123 @@ let mainWindow;
 let tray;
 let powerSaveBlockerId = null;
 let pendingUpdateInfo = null;
+let pollingIntervalId = null;
+let isPollingCheckInProgress = false;
+let isAutoLoginInProgress = false;
+let latestPollingSnapshot = null;
+
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function sendPollingSnapshot(snapshot) {
+	latestPollingSnapshot = snapshot;
+	if (mainWindow) {
+		mainWindow.webContents.send('polling-status', snapshot);
+	}
+}
+
+async function getStoredCredentials() {
+	try {
+		return await decryptCredentials(store.get('credentials', null));
+	} catch (error) {
+		eventBus.log(`无法读取已存储的凭证: ${error.message}`, 'error');
+		return null;
+	}
+}
+
+async function runConnectivityFlow(options = {}) {
+	const {
+		reason = 'polling',
+		allowAutoAuth = store.get('autoAuthEnabled', true),
+		broadcast = true
+	} = options;
+
+	if (isPollingCheckInProgress) {
+		return latestPollingSnapshot;
+	}
+
+	isPollingCheckInProgress = true;
+	try {
+		let connectivity = await checkConnectivity();
+
+		let trafficInfo = null;
+		if (connectivity.ipv4Access && connectivity.ipv6Access) {
+			try {
+				trafficInfo = await updateTrafficData();
+			} catch (error) {
+				eventBus.log(`获取流量信息失败: ${error.message}`, 'warn');
+			}
+		} else if (allowAutoAuth && !isAutoLoginInProgress) {
+			const credentials = await getStoredCredentials();
+			if (credentials && credentials.username && credentials.password) {
+				isAutoLoginInProgress = true;
+				try {
+					eventBus.log('无网络，尝试自动登录...', 'info');
+					await login(credentials.username, credentials.password);
+					await sleep(5000);
+					connectivity = await checkConnectivity();
+					if (connectivity.ipv4Access && connectivity.ipv6Access) {
+						try {
+							trafficInfo = await updateTrafficData();
+						} catch (error) {
+							eventBus.log(`自动登录后获取流量信息失败: ${error.message}`, 'warn');
+						}
+					}
+				} catch (error) {
+					eventBus.log(`主进程自动登录失败: ${error.message}`, 'error');
+				} finally {
+					isAutoLoginInProgress = false;
+				}
+			} else if (allowAutoAuth) {
+				eventBus.log('已启用自动认证，但本地没有可用凭证', 'error');
+			}
+		}
+
+		const snapshot = {
+			reason,
+			checkedAt: Date.now(),
+			connectivity,
+			trafficInfo
+		};
+
+		if (broadcast) {
+			sendPollingSnapshot(snapshot);
+		} else {
+			latestPollingSnapshot = snapshot;
+		}
+
+		return snapshot;
+	} finally {
+		isPollingCheckInProgress = false;
+	}
+}
+
+function restartPolling() {
+	if (pollingIntervalId) {
+		clearInterval(pollingIntervalId);
+		pollingIntervalId = null;
+	}
+
+	const intervalMs = Number(store.get('pollingInterval', 10000));
+	if (!Number.isFinite(intervalMs) || intervalMs <= 0) {
+		eventBus.log(`轮询间隔不合法: ${intervalMs}不是有效的时间间隔`, 'error');
+		return;
+	}
+	
+	// set interval不会立刻执行
+	runConnectivityFlow({reason: 'polling'}).catch((error) => {
+		eventBus.log(`后台轮询失败: ${error.message}`, 'error');
+	});
+		
+	pollingIntervalId = setInterval(() => {
+		runConnectivityFlow({reason: 'polling'}).catch((error) => {
+			eventBus.log(`后台轮询失败: ${error.message}`, 'error');
+		});
+	}, intervalMs);
+
+	eventBus.log(`主进程轮询已启动，间隔 ${intervalMs}ms`, 'info');
+}
 
 // --- Single Instance Lock ---
 const gotTheLock = app.requestSingleInstanceLock();
@@ -198,10 +315,12 @@ if (!gotTheLock) {
 		eventBus.setLogLevel(savedLogLevel);
 		
 		// Prevent App Nap on macOS to ensure background tasks continue
-		if (process.platform === 'darwin') {
-			powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
-			eventBus.log('Power save blocker started to prevent App Nap on macOS');
-		}
+		// if (process.platform === 'darwin') {
+		// 	powerSaveBlockerId = powerSaveBlocker.start('prevent-app-suspension');
+		// 	setTimeout(()=>{eventBus.log('Power save blocker started to prevent App Nap on macOS');}, 1000)
+		// }
+
+		restartPolling();
 	});
 	
 	app.on('activate', function () {
@@ -243,6 +362,9 @@ if (!gotTheLock) {
 		if (key === 'logLevel') {
 			eventBus.setLogLevel(value);
 		}
+		if (key === 'pollingInterval') {
+			restartPolling();
+		}
 		return true;
 	});
 	
@@ -276,15 +398,11 @@ if (!gotTheLock) {
 
 	// Network Operations
 	ipcMain.handle('check-connectivity', async () => {
-		const connectivity = await checkConnectivity();
-		if (connectivity.ipv4Access && connectivity.ipv6Access) {
-			setTrayStatus('green');
-		} else if (!connectivity.ipv4Access && !connectivity.ipv6Access) {
-			setTrayStatus('red');
-		} else {
-			setTrayStatus('default');
-		}
-		return connectivity;
+		return await checkConnectivity();
+	});
+
+	ipcMain.handle('get-latest-polling-status', async () => {
+		return latestPollingSnapshot;
 	});
 
 	ipcMain.handle('test-connectivity-url', async (event, url) => {
@@ -293,7 +411,12 @@ if (!gotTheLock) {
 	
 	ipcMain.handle('network-login', async (event, credentials) => {
 		const {username, password} = credentials;
-		return await login(username, password);
+		isAutoLoginInProgress = true;
+		try {
+			return await login(username, password);
+		} finally {
+			isAutoLoginInProgress = false;
+		}
 	});
 	
 	// Specific Login/Logout Handlers

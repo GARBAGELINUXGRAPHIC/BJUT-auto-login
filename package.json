@@ -1,6 +1,6 @@
 {
   "name": "bjut-auto-login",
-  "version": "1.3.8",
+  "version": "2.0.0",
   "description": "BJUT 校园网自动认证 (Electron)",
   "main": "main.js",
   "scripts": {

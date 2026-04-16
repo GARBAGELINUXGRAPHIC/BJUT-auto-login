@@ -5,6 +5,7 @@ const qs = require('qs');
 const cheerio = require('cheerio');
 const Store = require('electron-store');
 const eventBus = require('./event-bus');
+const { setTrayStatus } = require('./tray');
 require('os');
 
 const store = new Store();
@@ -105,10 +106,18 @@ async function checkConnectivity() {
 		checkUrl(ipv6Url)
 	]);
 	
-	return {
+	const connectivity = {
 		ipv4Access: ipv4Result.status === 'fulfilled' && ipv4Result.value,
 		ipv6Access: ipv6Result.status === 'fulfilled' && ipv6Result.value,
 	};
+
+	if (connectivity.ipv4Access && connectivity.ipv6Access) {
+		setTrayStatus('green');
+	} else {
+		setTrayStatus('red');
+	}
+
+	return connectivity;
 }
 
 async function login(username, password) {
