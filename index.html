@@ -939,6 +939,33 @@
 	</div>
 </div>
 
+<div id="release-notes-overlay"
+	 style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
+	<div class="card" style="width: 90%; max-width: 560px; animation: overlay-appear .2s ease-out forwards;">
+		<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+			<div>
+				<h2 class="section-title" style="margin: 0;">更新</h2>
+			</div>
+			<button data-ripple id="close-release-notes-btn" class="btn"
+			        style="padding: 4px; line-height: 1; border-radius: 1000px; aspect-ratio: 1; text-align: center">
+				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
+				     style="width: 20px; height: 20px; display: block; place-self: center">
+					<path fill="currentColor"
+					      d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"/>
+				</svg>
+			</button>
+		</div>
+			<div style="padding: 0 12px;">
+				<div id="release-notes-version" style="text-align: left; font-size: large; margin-bottom: 12px; place-self: center">版本信息加载中</div>
+				<pre id="release-notes-content" style="margin: 0; padding: 12px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: rgba(255, 255, 255, .04); color: var(--text); font: inherit; font-weight: 500; line-height: 1.6; white-space: pre-wrap;">更新说明加载中...</pre>
+			</div>
+			<div style="display: flex; justify-content: center; gap: 8px; margin-top: 14px;">
+				<button data-ripple id="release-notes-close-btn" class="btn">下次再说</button>
+				<button data-ripple id="release-notes-download-btn" class="btn">打开下载页</button>
+			</div>
+	</div>
+</div>
+
 <div id="help-overlay"
      style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
 	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
@@ -968,6 +995,7 @@
 <script src="./utils/ripple.js"></script>
 <script>
 	const {ipcRenderer} = require('electron');
+	const {shell} = require('electron');
 	
 	// --- DOM Elements ---
 	const usernameInput = document.getElementById('username');
@@ -993,6 +1021,12 @@
 	const lgn6LoginBtn = document.getElementById('lgn6LoginBtn');
 	const lgnLogin46Btn = document.getElementById('lgnLogin46Btn');
 	const lgn6Login46Btn = document.getElementById('lgn6Login46Btn');
+	const releaseNotesOverlay = document.getElementById('release-notes-overlay');
+	const releaseNotesVersion = document.getElementById('release-notes-version');
+	const releaseNotesContent = document.getElementById('release-notes-content');
+	const closeReleaseNotesBtn = document.getElementById('close-release-notes-btn');
+	const releaseNotesCloseBtn = document.getElementById('release-notes-close-btn');
+	const releaseNotesDownloadBtn = document.getElementById('release-notes-download-btn');
 	const helpBtn = document.getElementById('helpBtn');
 	const helpOverlay = document.getElementById('help-overlay');
 	const closeHelpBtn = document.getElementById('close-help-btn');
@@ -1016,6 +1050,7 @@
 	let userHasScrolled = false;
 	let scrollTimeout = null;
 	let currentLogLevel = 'info';
+	let pendingUpdateInfo = null;
 	
 	// Log level hierarchy: error > warn > info > debug
 	const logLevels = {error: 0, warn: 1, info: 2, debug: 3};
@@ -1072,6 +1107,43 @@
 		states.forEach(node => {
 			node.style.display = node.dataset.role === state ? 'flex' : 'none';
 		});
+	}
+
+	function applyUpdateInfo(updateInfo) {
+		pendingUpdateInfo = updateInfo;
+		if (!updateInfo) {
+			releaseNotesVersion.textContent = '暂无新的版本提示';
+			releaseNotesContent.textContent = '当前没有待处理的更新说明。';
+			return;
+		}
+
+		releaseNotesVersion.textContent = `发现新版本 V${updateInfo.version}`;
+		releaseNotesContent.textContent = '更新日志：\n' + updateInfo.releaseNotes || '暂无更新说明';
+	}
+
+	function openReleaseNotesDialog() {
+		if (!pendingUpdateInfo) {
+			return;
+		}
+		releaseNotesOverlay.style.display = 'flex';
+		const card = releaseNotesOverlay.querySelector('.card');
+		card.style.animation = 'overlay-appear .2s ease-out forwards';
+		setTimeout(() => {
+			releaseNotesOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		}, 10);
+	}
+
+	function closeReleaseNotesDialog(shouldDismiss = false) {
+		const card = releaseNotesOverlay.querySelector('.card');
+		card.style.animation = 'overlay-disappear .2s ease-out forwards';
+		releaseNotesOverlay.style.backgroundColor = 'rgba(0,0,0,0)';
+		setTimeout(() => {
+			releaseNotesOverlay.style.display = 'none';
+		}, 200);
+		if (shouldDismiss) {
+			ipcRenderer.send('dismiss-pending-update-info');
+			pendingUpdateInfo = null;
+		}
 	}
 
 	async function testConnectivityUrl(version, input, button) {
@@ -1288,6 +1360,7 @@
 	// --- Event Listeners ---
 	document.addEventListener('DOMContentLoaded', async () => {
 		await loadSettings();
+		applyUpdateInfo(await ipcRenderer.invoke('get-pending-update-info'));
 		setupPolling();
 		await runNetworkCheck();
 		
@@ -1448,6 +1521,19 @@
 	helpOverlay.addEventListener('click', (e) => {
 		if (e.target === helpOverlay) {
 			closeHelpDialog();
+		}
+	});
+
+	closeReleaseNotesBtn.addEventListener('click', () => closeReleaseNotesDialog());
+	releaseNotesCloseBtn.addEventListener('click', () => closeReleaseNotesDialog(true));
+	releaseNotesDownloadBtn.addEventListener('click', () => {
+		shell.openExternal('https://quitsense.cn/apps/bjutautologin/download');
+		closeReleaseNotesDialog(true);
+	});
+
+	releaseNotesOverlay.addEventListener('click', (e) => {
+		if (e.target === releaseNotesOverlay) {
+			closeReleaseNotesDialog();
 		}
 	});
 
@@ -1614,6 +1700,11 @@
 	
 	ipcRenderer.on('log-message', (event, message, level) => {
 		addLog(message, level);
+	});
+
+	ipcRenderer.on('show-update-popup', (event, updateInfo) => {
+		applyUpdateInfo(updateInfo);
+		openReleaseNotesDialog();
 	});
 </script>
 </body>

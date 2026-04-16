@@ -135,6 +135,7 @@ async function decryptCredentials(savedCredentials) {
 let mainWindow;
 let tray;
 let powerSaveBlockerId = null;
+let pendingUpdateInfo = null;
 
 // --- Single Instance Lock ---
 const gotTheLock = app.requestSingleInstanceLock();
@@ -166,6 +167,9 @@ if (!gotTheLock) {
 		});
 		mainWindow.loadFile('index.html');
 		mainWindow.setMenu(null);
+		mainWindow.webContents.on('did-finish-load', () => {
+			flushPendingUpdatePopup();
+		});
 		
 		mainWindow.on('close', (event) => {
 			if (!quitAppModule.isQuiting) {
@@ -320,6 +324,14 @@ if (!gotTheLock) {
 	ipcMain.handle('check-updates', async () => {
 		return await checkUpdates();
 	});
+
+	ipcMain.handle('get-pending-update-info', async () => {
+		return pendingUpdateInfo;
+	});
+
+	ipcMain.on('dismiss-pending-update-info', () => {
+		pendingUpdateInfo = null;
+	});
 	
 	
 	// --- Utility Functions --- //
@@ -328,6 +340,17 @@ if (!gotTheLock) {
 		if (mainWindow) {
 			mainWindow.webContents.send('log-message', message, level);
 		}
+	}
+
+	function flushPendingUpdatePopup() {
+		if (mainWindow && pendingUpdateInfo) {
+			mainWindow.webContents.send('show-update-popup', pendingUpdateInfo);
+		}
+	}
+
+	function queueUpdatePopup(updateInfo) {
+		pendingUpdateInfo = updateInfo;
+		flushPendingUpdatePopup();
 	}
 	
 	function createUpdatePopup(latestVersion) {
@@ -353,11 +376,18 @@ if (!gotTheLock) {
 		try {
 			eventBus.log('正在检测更新...', 'info');
 			eventBus.log('Current Version: ' + app.getVersion()); // X.Y.Z
-			const res = await axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestTag'); // returns 'VX.Y.Z', github release tag
-			if (!res.data.success) {
-				throw new Error('无法获取最新版本: ' + res.data.message);
+			const [tagRes, notesRes] = await Promise.all([
+				axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestTag'),
+				axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestReleaseNotes')
+			]);
+			if (!tagRes.data.success) {
+				throw new Error('无法获取最新版本: ' + tagRes.data.message);
 			}
-			let tagstr = res.data.data; // yes, my api is shit
+			if (!notesRes.data.success) {
+				throw new Error('无法获取更新说明: ' + notesRes.data.message);
+			}
+			let tagstr = tagRes.data.data; // yes, my api is shit
+			const releaseNotes = notesRes.data.data;
 			eventBus.log('Get tagstr success! Latest version = ' + tagstr);
 			if (tagstr.at(0).toLowerCase() === 'v') { // remove v at front
 				tagstr = tagstr.substring(1);
@@ -386,10 +416,20 @@ if (!gotTheLock) {
 				return;
 			}
 			eventBus.log('找到更新！(' + tagstr + ' > ' + app.getVersion() + ')');
+			queueUpdatePopup({
+				version: tagstr,
+				releaseNotes
+			});
 			createUpdatePopup(tagstr);
+			return {
+				version: tagstr,
+				releaseNotes,
+				needUpdate: true
+			};
 		} catch (e) {
 			eventBus.log('检查更新失败: ' + e.message + '，1h后重试', 'error');
 			setTimeout(checkUpdates, 3600 * 1000);
+			throw e;
 		}
 	}
 }
