@@ -63,7 +63,7 @@ async function getBJUTauthServersReachability() {
 	const promises = Object.entries(servers).map(async ([name, url]) => {
 		try {
 			await axios.get(url, {
-				timeout: 1000,
+				timeout: 5000,
 				maxRedirects: 0,  // 不跟随重定向，30X会抛出错误
 				validateStatus: (status) => status >= 200 && status < 300  // 只接受2XX状态码
 			});
@@ -178,7 +178,7 @@ function parse_response(str) {
 async function updateTrafficData() {
 	const url = 'https://lgn6.bjut.edu.cn:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh';
 	try {
-		const res = await axios.get(url);
+		const res = await axios.get(url, {timeout: 5000});
 		const jsonobj = parse_response(res.data);
 		const userInfo = jsonobj.user_info;
 		
@@ -229,7 +229,7 @@ async function susheLogin(username, password) {
 			'v': Math.floor(Math.random() * 9000) + 1000,
 		};
 		const loginUrl = `http://10.21.221.98:801/eportal/portal/login?${qs.stringify(data)}`;
-		const res = await axios.get(loginUrl);
+		const res = await axios.get(loginUrl, {timeout: 5000});
 		console.log(res.data);
 		eventBus.log('宿舍网登录返回：' + res.data, 'debug');
 	} catch (error) {
@@ -245,7 +245,8 @@ async function susheLogout() {
 		const res = await axios.get(logoutUrl, {
 			headers: {
 				'Referer': 'http://10.21.221.98/'
-			}
+			},
+			timeout: 5000
 		});
 		const responseData = parse_response(res.data);
 		if (parseInt(responseData.result) === 1) {
@@ -265,9 +266,14 @@ async function lgn6Login(username, password, duallogin = false) {
 	try {
 		eventBus.log('尝试lgn6(' + (duallogin ? 'ipv4 + ' : '') + 'ipv6)登录', 'info');
 		const v46s = duallogin ? 0 : 2; // dual login = false: only login ipv6
-		const response = await axios.post('https://lgn6.bjut.edu.cn', qs.stringify({
+		const response = await axios.post(
+			'https://lgn6.bjut.edu.cn', qs.stringify({
 			DDDDD: username, upass: password, v46s: v46s, '0MKKey': ''/*, wlan_user_mac: getMacAddress() */
-		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
+		}),
+			{
+				headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+				timeout: 5000
+			});
 		console.log(response.data); // html with js dynamic load. consider ipv6 access verification
 		eventBus.log('lgn6返回信息：' + response.data, 'debug');
 	} catch (error) {
@@ -282,9 +288,9 @@ async function wlgnLogin(username, password) {
 		const params = {
 			callback: 'dr1002', DDDDD: username, upass: password, '0MKKey': '123456',
 			R1: '0', R2: '', R3: '0', R6: '0', para: '00', v6ip: '',
-			terminal_type: '1', lang: 'zh-cn', jsVersion: '4.1', v: Math.floor(Math.random() * 1000) + 1,
+			terminal_type: '1', lang: 'zh-cn', jsVersion: '4.1', v: Math.floor(Math.random() * 1000) + 1
 		};
-		const response = await axios.get('http://10.21.251.3/drcom/login', {params});
+		const response = await axios.get('http://10.21.251.3/drcom/login', {params: params, timeout: 5000});
 		console.log(response);
 		eventBus.log('wlgnLogin返回信息：' + response.data, 'debug');
 	} catch (error) {
@@ -300,7 +306,7 @@ async function lgnLogin(username, password) {
 		
 		const res1 = await axios.post('https://lgn6.bjut.edu.cn/V6?https://lgn.bjut.edu.cn', qs.stringify({
 			DDDDD: username, upass: password, v46s: 0, '0MKKey': ''
-		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
+		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}, timeout: 5000});
 		eventBus.log('lgnLogin-lgn6返回信息：' + res1.data, 'debug');
 		
 		const $ = cheerio.load(res1.data);
@@ -309,7 +315,7 @@ async function lgnLogin(username, password) {
 		
 		const res2 = await axios.post('https://lgn.bjut.edu.cn', qs.stringify({
 			DDDDD: username, upass: password, '0MKKey': 'Login', v6ip: v6ip
-		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}});
+		}), {headers: {'Content-Type': 'application/x-www-form-urlencoded'}, timeout: 5000});
 		eventBus.log('lgnLogin-lgn返回信息：' + res2.data, 'debug');
 		
 	} catch (error) {
