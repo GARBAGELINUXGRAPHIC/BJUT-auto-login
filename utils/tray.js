@@ -26,19 +26,21 @@ function loadStatusIcon(status) {
     return image;
 }
 
-function createTray(mainWindow, quitApp) {
+function createTray(windowActions, quitApp) {
     tray = new Tray(loadStatusIcon('default'));
 
+    const { showMainWindow, openDevTools } = windowActions;
+
     const contextMenu = Menu.buildFromTemplate([
-        { label: '显示主界面', click: () => { mainWindow.show(); } },
-        { label: '打开开发者工具', click: () => { mainWindow.webContents.openDevTools(); } },
+        { label: '显示主界面', click: () => { showMainWindow(); } },
+        { label: '打开开发者工具', click: () => { openDevTools(); } },
         { type: 'separator' },
         { label: '退出', click: () => { quitApp(); } }
     ]);
 
     tray.setToolTip('BJUT-Network-Autologin');
     tray.setContextMenu(contextMenu);
-    tray.on('double-click', () => mainWindow.show());
+    tray.on('double-click', () => showMainWindow());
 
     return tray;
 }

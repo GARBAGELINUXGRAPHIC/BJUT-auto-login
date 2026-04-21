@@ -22,6 +22,10 @@ const {registerIpcHandlers} = require('./utils/ipc-handlers');
 const {createUpdateService} = require('./utils/update');
 const axios = require('axios');
 
+function sleep(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 // Initialize persistent store
 const store = new Store();
 
@@ -39,6 +43,15 @@ let mainWindow;
 let tray;
 let powerSaveBlockerId = null;
 let isAutoLoginInProgress = false;
+const LOG_BUFFER_LIMIT = 200;
+const LOG_FLUSH_CHUNK_SIZE = 40;
+let bufferedLogs = [];
+let destroyWindowTimeout = null;
+let showWindowTimeout = null;
+let startUp = true;
+const WINDOW_SHOW_TIMEOUT = 250;
+const WINDOW_HIDE_TIMEOUT = 250;
+let isReadyToQuit = false;
 
 const heartbeatLoop = createHeartbeatLoop({
 	store,
@@ -50,7 +63,8 @@ const heartbeatLoop = createHeartbeatLoop({
 	getAutoLoginInProgress: () => isAutoLoginInProgress,
 	setAutoLoginInProgress: (value) => {
 		isAutoLoginInProgress = value;
-	}
+	},
+	sleep
 });
 
 const {restartPolling, stopPolling, getLatestPollingSnapshot} = heartbeatLoop;
@@ -78,19 +92,21 @@ if (!gotTheLock) {
 } else {
 	app.on('second-instance', (event, commandLine, workingDirectory) => {
 		// Someone tried to run a second instance, we should focus our window.
-		if (mainWindow) {
-			if (mainWindow.isMinimized()) mainWindow.restore();
-			if (!mainWindow.isVisible()) mainWindow.show();
-			mainWindow.focus();
-		}
+		showMainWindow();
 	});
 	
 	// --- App Setup ---
 	
 	function createWindow() {
+		if (showWindowTimeout) {
+			clearTimeout(showWindowTimeout);
+			showWindowTimeout = null;
+		}
+
 		mainWindow = new BrowserWindow({
 			width: 880,
 			height: 727,
+			show: false,
 			frame: true,
 			webPreferences: {
 				nodeIntegration: true,
@@ -101,21 +117,88 @@ if (!gotTheLock) {
 		setMainWindow(mainWindow);
 		mainWindow.loadFile('index.html');
 		mainWindow.setMenu(null);
+		if(startUp) {
+			showWindowTimeout = setTimeout(() => {
+				if (mainWindow && !mainWindow.isDestroyed()) {
+					mainWindow.show();
+					mainWindow.focus();
+				}
+				showWindowTimeout = null;
+			}, WINDOW_SHOW_TIMEOUT);
+		} else {
+			mainWindow.once('ready-to-show', () => {
+				if (mainWindow && !mainWindow.isDestroyed()) {
+					mainWindow.show();
+					mainWindow.focus();
+				}
+			});
+		}
 		mainWindow.webContents.on('did-finish-load', () => {
 			flushPendingUpdatePopup();
+			flushBufferedLogs(mainWindow);
 		});
 		
 		mainWindow.on('close', (event) => {
 			if (!quitAppModule.isQuiting) {
 				event.preventDefault();
-				mainWindow.hide();
+				const windowToDestroy = mainWindow;
+				windowToDestroy.hide();
+
+				if (destroyWindowTimeout) {
+					clearTimeout(destroyWindowTimeout);
+				}
+
+				destroyWindowTimeout = setTimeout(() => {
+					if (windowToDestroy && !windowToDestroy.isDestroyed()) {
+						windowToDestroy.destroy();
+					}
+					destroyWindowTimeout = null;
+				}, WINDOW_HIDE_TIMEOUT);
 			}
 		});
+
+		mainWindow.on('closed', () => {
+			if (showWindowTimeout) {
+				clearTimeout(showWindowTimeout);
+				showWindowTimeout = null;
+			}
+			if (destroyWindowTimeout) {
+				clearTimeout(destroyWindowTimeout);
+				destroyWindowTimeout = null;
+			}
+			setMainWindow(null);
+			mainWindow = null;
+		});
+	}
+
+	function showMainWindow() {
+		if (destroyWindowTimeout) {
+			clearTimeout(destroyWindowTimeout);
+			destroyWindowTimeout = null;
+		}
+		if (!mainWindow || mainWindow.isDestroyed()) {
+			createWindow();
+			return;
+		}
+
+		if (mainWindow.isMinimized()) mainWindow.restore();
+		if (!mainWindow.isVisible()) mainWindow.show();
+		mainWindow.focus();
+	}
+
+	function openMainWindowDevTools() {
+		showMainWindow();
+		if (mainWindow && !mainWindow.isDestroyed()) {
+			mainWindow.webContents.openDevTools();
+		}
 	}
 	
 	app.whenReady().then(() => {
-		createWindow();
-		tray = createTray(mainWindow, quitAppModule.quitApp);
+		showMainWindow();
+		tray = createTray({
+			showMainWindow,
+			openDevTools: openMainWindowDevTools
+		}, quitAppModule.quitApp);
 		powerMonitor.on('resume', () => {
 			eventBus.log('检测到系统从睡眠中恢复，正在重启轮询', 'info');
 			restartPolling('resume');
@@ -144,20 +227,34 @@ if (!gotTheLock) {
 		if (BrowserWindow.getAllWindows().length === 0) {
 			createWindow();
 		} else if (mainWindow) {
-			mainWindow.show();
+			showMainWindow();
 		}
 	});
+
+	// Keep the app and tray alive after the last window is closed.
+	app.on('window-all-closed', () => {
+		// Intentionally do nothing.
+	});
 	
-	app.on('before-quit', () => {
-		if (process.platform === 'darwin') quitAppModule.markQuitting();
-		
-		// other cleaning
-		stopPolling();
-		// Stop power save blocker before quitting
-		// if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
-		// 	powerSaveBlocker.stop(powerSaveBlockerId);
-		// 	eventBus.log('Power save blocker stopped');
-		// }
+	app.on('before-quit', (event) => {
+		if (!isReadyToQuit) {
+			event.preventDefault();
+			if (process.platform === 'darwin') quitAppModule.markQuitting(); // macos dock关闭用
+			
+			if (mainWindow && !mainWindow.isDestroyed()) {
+				mainWindow.hide();
+			}
+			
+			// other cleaning
+			stopPolling();
+			// Stop power save blocker before quitting
+			// if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
+			// 	powerSaveBlocker.stop(powerSaveBlockerId);
+			// 	eventBus.log('Power save blocker stopped');
+			// }
+			
+			setTimeout(() => {isReadyToQuit = true; app.quit()}, WINDOW_HIDE_TIMEOUT);
+		}
 	});
 	
 	
@@ -192,9 +289,46 @@ if (!gotTheLock) {
 	
 	
 	// --- Utility Functions --- //
+
+	function enqueueLog(message, level = 'debug') {
+		bufferedLogs.push({message, level});
+		if (bufferedLogs.length > LOG_BUFFER_LIMIT) {
+			bufferedLogs = bufferedLogs.slice(-LOG_BUFFER_LIMIT);
+		}
+	}
+
+	function flushBufferedLogs(targetWindow) {
+		if (!targetWindow || targetWindow.isDestroyed() || bufferedLogs.length === 0) {
+			return;
+		}
+
+		const logsToFlush = bufferedLogs.slice();
+		let index = 0;
+
+		function flushChunk() {
+			if (!mainWindow || mainWindow !== targetWindow || targetWindow.isDestroyed()) {
+				return;
+			}
+
+			const chunk = logsToFlush.slice(index, index + LOG_FLUSH_CHUNK_SIZE);
+			if (chunk.length === 0) {
+				return;
+			}
+
+			targetWindow.webContents.send('log-message-batch', chunk);
+			index += chunk.length;
+
+			if (index < logsToFlush.length) {
+				setTimeout(flushChunk, 16);
+			}
+		}
+
+		flushChunk();
+	}
 	
 	function sendLogMessage(message, level = 'debug') {
-		if (mainWindow) {
+		enqueueLog(message, level);
+		if (mainWindow && !mainWindow.isDestroyed()) {
 			mainWindow.webContents.send('log-message', message, level);
 		}
 	}

@@ -1735,6 +1735,22 @@
 		addLog(message, level);
 	});
 
+	ipcRenderer.on('log-message-batch', (event, entries) => {
+		if (!Array.isArray(entries)) {
+			return;
+		}
+
+		logArea.value = '';
+		userHasScrolled = false;
+
+		entries.forEach((entry) => {
+			if (!entry || typeof entry.message !== 'string') {
+				return;
+			}
+			addLog(entry.message, entry.level);
+		});
+	});
+
 	ipcRenderer.on('show-update-popup', (event, updateInfo) => {
 		applyUpdateInfo(updateInfo);
 		openReleaseNotesDialog();

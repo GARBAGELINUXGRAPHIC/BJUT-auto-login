@@ -8,16 +8,13 @@ function createHeartbeatLoop({
 	login,
 	getStoredCredentials,
 	getAutoLoginInProgress,
-	setAutoLoginInProgress
+	setAutoLoginInProgress,
+	sleep
 }) {
 	let pollingTimeoutId = null;
 	let recursivePollingTimestamp = 0;
 	let isPollingCheckInProgress = false;
 	let latestPollingSnapshot = null;
-
-	function sleep(ms) {
-		return new Promise((resolve) => setTimeout(resolve, ms));
-	}
 
 	function sendPollingSnapshot(snapshot) {
 		latestPollingSnapshot = snapshot;
