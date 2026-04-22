@@ -1063,11 +1063,20 @@
 		};
 	}
 	
-	function addLog(message, level = 'debug') {
+	function formatLogTimestamp(timestamp) {
+		if (!timestamp) {
+			return new Date().toLocaleTimeString();
+		}
+
+		const date = new Date(timestamp);
+		return Number.isNaN(date.getTime()) ? new Date().toLocaleTimeString() : date.toLocaleTimeString();
+	}
+
+	function displayLog(message, level = 'debug', timestamp) {
 		const levels = {error: 0, warn: 1, info: 2, debug: 3};
 		const currentLevel = levels[currentLogLevel] || 3;
 		const messageLevel = levels[level] || 3;
-		const time = new Date().toLocaleTimeString();
+		const time = formatLogTimestamp(timestamp);
 		
 		// Only emit if message level is <= current log level
 		if (messageLevel <= currentLevel) {
@@ -1076,6 +1085,10 @@
 		if (!userHasScrolled) {
 			logArea.scrollTop = logArea.scrollHeight;
 		}
+	}
+
+	function addLog(message, level = 'debug') {
+		ipcRenderer.send('append-log', {message, level});
 	}
 	
 	// --- Settings & Credential Management ---
@@ -1731,8 +1744,12 @@
 		}
 	});
 	
-	ipcRenderer.on('log-message', (event, message, level) => {
-		addLog(message, level);
+	ipcRenderer.on('log-message', (event, entry) => {
+		if (!entry || typeof entry.message !== 'string') {
+			return;
+		}
+
+		displayLog(entry.message, entry.level, entry.timestamp);
 	});
 
 	ipcRenderer.on('log-message-batch', (event, entries) => {
@@ -1740,14 +1757,11 @@
 			return;
 		}
 
-		logArea.value = '';
-		userHasScrolled = false;
-
 		entries.forEach((entry) => {
 			if (!entry || typeof entry.message !== 'string') {
 				return;
 			}
-			addLog(entry.message, entry.level);
+			displayLog(entry.message, entry.level, entry.timestamp);
 		});
 	});
 

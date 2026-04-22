@@ -44,7 +44,7 @@ let tray;
 let powerSaveBlockerId = null;
 let isAutoLoginInProgress = false;
 const LOG_BUFFER_LIMIT = 200;
-const LOG_FLUSH_CHUNK_SIZE = 40;
+const LOG_FLUSH_CHUNK_SIZE = 200;
 let bufferedLogs = [];
 let destroyWindowTimeout = null;
 let showWindowTimeout = null;
@@ -125,6 +125,7 @@ if (!gotTheLock) {
 				}
 				showWindowTimeout = null;
 			}, WINDOW_SHOW_TIMEOUT);
+			startUp = false;
 		} else {
 			mainWindow.once('ready-to-show', () => {
 				if (mainWindow && !mainWindow.isDestroyed()) {
@@ -291,7 +292,11 @@ if (!gotTheLock) {
 	// --- Utility Functions --- //
 
 	function enqueueLog(message, level = 'debug') {
-		bufferedLogs.push({message, level});
+		bufferedLogs.push({
+			message,
+			level,
+			timestamp: new Date().toISOString()
+		});
 		if (bufferedLogs.length > LOG_BUFFER_LIMIT) {
 			bufferedLogs = bufferedLogs.slice(-LOG_BUFFER_LIMIT);
 		}
@@ -329,7 +334,7 @@ if (!gotTheLock) {
 	function sendLogMessage(message, level = 'debug') {
 		enqueueLog(message, level);
 		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.send('log-message', message, level);
+			mainWindow.webContents.send('log-message', bufferedLogs[bufferedLogs.length - 1]);
 		}
 	}
 }

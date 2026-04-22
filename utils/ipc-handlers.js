@@ -41,6 +41,14 @@ function registerIpcHandlers({
 		store.set('startOnLogin', enabled);
 	});
 
+	ipcMain.on('append-log', (event, entry) => {
+		if (!entry || typeof entry.message !== 'string') {
+			return;
+		}
+
+		eventBus.log(entry.message, entry.level || 'debug');
+	});
+
 	// Credential Management
 	ipcMain.handle('get-credentials', async () => {
 		try {
