@@ -21,6 +21,7 @@ const {createHeartbeatLoop} = require('./utils/heartbeat-loop');
 const {registerIpcHandlers} = require('./utils/ipc-handlers');
 const {initLogManager} = require('./utils/log-manager');
 const {createUpdateService} = require('./utils/update');
+const {createWindowManager} = require('./utils/window-management');
 const axios = require('axios');
 
 function sleep(ms) {
@@ -44,12 +45,8 @@ let mainWindow;
 let tray;
 // let powerSaveBlockerId = null;
 let isAutoLoginInProgress = false;
-let destroyWindowTimeout = null;
-let showWindowTimeout = null;
-let startUp = true;
-const WINDOW_SHOW_TIMEOUT = 250;
-const WINDOW_HIDE_TIMEOUT = 250;
 let isReadyToQuit = false;
+let windowManager;
 const logManager = initLogManager({mainWindowProvider: () => mainWindow});
 
 const heartbeatLoop = createHeartbeatLoop({
@@ -83,6 +80,11 @@ const {
 	setMainWindow
 } = updateService;
 
+function handleMainWindowChange(window) {
+	mainWindow = window;
+	setMainWindow(window);
+}
+
 // --- Single Instance Lock ---
 const gotTheLock = app.requestSingleInstanceLock();
 
@@ -95,103 +97,15 @@ if (!gotTheLock) {
 	});
 	
 	// --- App Setup ---
-	
-	function createWindow() {
-		if (showWindowTimeout) {
-			clearTimeout(showWindowTimeout);
-			showWindowTimeout = null;
-		}
+	windowManager = createWindowManager({
+		BrowserWindow,
+		quitAppModule,
+		logManager,
+		flushPendingUpdatePopup,
+		onWindowChange: handleMainWindowChange
+	});
 
-		mainWindow = new BrowserWindow({
-			width: 880,
-			height: 727,
-			show: false,
-			frame: true,
-			webPreferences: {
-				nodeIntegration: true,
-				contextIsolation: false,
-				autoHideMenuBar: true
-			}
-		});
-		setMainWindow(mainWindow);
-		mainWindow.loadFile('index.html');
-		mainWindow.setMenu(null);
-		if(startUp) {
-			showWindowTimeout = setTimeout(() => {
-				if (mainWindow && !mainWindow.isDestroyed()) {
-					mainWindow.show();
-					mainWindow.focus();
-				}
-				showWindowTimeout = null;
-			}, WINDOW_SHOW_TIMEOUT);
-			startUp = false;
-		} else {
-			mainWindow.once('ready-to-show', () => {
-				if (mainWindow && !mainWindow.isDestroyed()) {
-					mainWindow.show();
-					mainWindow.focus();
-				}
-			});
-		}
-		mainWindow.webContents.on('did-finish-load', () => {
-			flushPendingUpdatePopup();
-			logManager.flushBufferedLogs(mainWindow);
-		});
-		
-		mainWindow.on('close', (event) => {
-			if (!quitAppModule.isQuiting) {
-				event.preventDefault();
-				const windowToDestroy = mainWindow;
-				windowToDestroy.hide();
-
-				if (destroyWindowTimeout) {
-					clearTimeout(destroyWindowTimeout);
-				}
-
-				destroyWindowTimeout = setTimeout(() => {
-					if (windowToDestroy && !windowToDestroy.isDestroyed()) {
-						windowToDestroy.destroy();
-					}
-					destroyWindowTimeout = null;
-				}, WINDOW_HIDE_TIMEOUT);
-			}
-		});
-
-		mainWindow.on('closed', () => {
-			if (showWindowTimeout) {
-				clearTimeout(showWindowTimeout);
-				showWindowTimeout = null;
-			}
-			if (destroyWindowTimeout) {
-				clearTimeout(destroyWindowTimeout);
-				destroyWindowTimeout = null;
-			}
-			setMainWindow(null);
-			mainWindow = null;
-		});
-	}
-
-	function showMainWindow() {
-		if (destroyWindowTimeout) {
-			clearTimeout(destroyWindowTimeout);
-			destroyWindowTimeout = null;
-		}
-		if (!mainWindow || mainWindow.isDestroyed()) {
-			createWindow();
-			return;
-		}
-
-		if (mainWindow.isMinimized()) mainWindow.restore();
-		if (!mainWindow.isVisible()) mainWindow.show();
-		mainWindow.focus();
-	}
-
-	function openMainWindowDevTools() {
-		showMainWindow();
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.openDevTools();
-		}
-	}
+	const {createWindow, showMainWindow, openMainWindowDevTools} = windowManager;
 	
 	app.whenReady().then(() => {
 		showMainWindow();
@@ -253,7 +167,7 @@ if (!gotTheLock) {
 			// 	eventBus.log('Power save blocker stopped');
 			// }
 			
-			setTimeout(() => {isReadyToQuit = true; app.quit()}, WINDOW_HIDE_TIMEOUT);
+			setTimeout(() => {isReadyToQuit = true; app.quit()}, windowManager.getHideTimeoutMs());
 		}
 	});
 	
