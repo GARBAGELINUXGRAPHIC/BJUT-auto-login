@@ -1,9 +1,53 @@
+const axios = require('axios');
+const Store = require('electron-store');
 const eventBus = require('./event-bus');
+const {setTrayStatus} = require('./tray');
+
+const DEFAULT_IPV4_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt';
+const DEFAULT_IPV6_TEST_URL = 'http://ipv6.msftconnecttest.com/connecttest.txt';
+const connectivityStore = new Store();
+
+const checkUrl = async (url) => {
+	try {
+		const response = await axios.get(url, {timeout: 3000, maxRedirects: 0});
+		return response.status > 0;
+	} catch (error) {
+		return false;
+	}
+};
+
+function getConnectivityTestUrls() {
+	return {
+		ipv4Url: connectivityStore.get('ipv4TestUrl', DEFAULT_IPV4_TEST_URL),
+		ipv6Url: connectivityStore.get('ipv6TestUrl', DEFAULT_IPV6_TEST_URL)
+	};
+}
+
+async function checkConnectivity() {
+	eventBus.log('检测ipv4+ipv6网络连通性...');
+	const {ipv4Url, ipv6Url} = getConnectivityTestUrls();
+	const [ipv4Result, ipv6Result] = await Promise.allSettled([
+		checkUrl(ipv4Url),
+		checkUrl(ipv6Url)
+	]);
+
+	const connectivity = {
+		ipv4Access: ipv4Result.status === 'fulfilled' && ipv4Result.value,
+		ipv6Access: ipv6Result.status === 'fulfilled' && ipv6Result.value,
+	};
+
+	if (connectivity.ipv4Access && connectivity.ipv6Access) {
+		setTrayStatus('green');
+	} else {
+		setTrayStatus('red');
+	}
+
+	return connectivity;
+}
 
 function createHeartbeatLoop({
 	store,
 	mainWindowProvider,
-	checkConnectivity,
 	updateTrafficData,
 	login,
 	getStoredCredentials,
@@ -139,5 +183,7 @@ function createHeartbeatLoop({
 }
 
 module.exports = {
-	createHeartbeatLoop
+	createHeartbeatLoop,
+	checkUrl,
+	checkConnectivity
 };

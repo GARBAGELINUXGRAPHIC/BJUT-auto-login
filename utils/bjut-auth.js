@@ -3,14 +3,9 @@ const si = require('systeminformation');
 const axios = require('axios');
 const qs = require('qs');
 const cheerio = require('cheerio');
-const Store = require('electron-store');
 const eventBus = require('./event-bus');
-const { setTrayStatus } = require('./tray');
+const {checkConnectivity} = require('./heartbeat-loop');
 require('os');
-
-const store = new Store();
-const DEFAULT_IPV4_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt';
-const DEFAULT_IPV6_TEST_URL = 'http://ipv6.msftconnecttest.com/connecttest.txt';
 
 // Cache MAC address for the current session
 let cachedMacAddress = null;
@@ -76,48 +71,6 @@ async function getBJUTauthServersReachability() {
 	
 	const results = await Promise.all(promises);
 	return Object.fromEntries(results);
-}
-
-const checkUrl = async (url) => {
-	try {
-		const response = await axios.get(url, {timeout: 3000, maxRedirects: 0});
-		return response.status > 0;
-	} catch (error) {
-		return false;
-	}
-};
-
-function getConnectivityTestUrls() {
-	return {
-		ipv4Url: store.get('ipv4TestUrl', DEFAULT_IPV4_TEST_URL),
-		ipv6Url: store.get('ipv6TestUrl', DEFAULT_IPV6_TEST_URL)
-	};
-}
-
-/**
- * Checks only for internet connectivity by hitting two endpoints.
- * @returns {Promise<{ipv4Access: boolean, ipv6Access: boolean}>}
- */
-async function checkConnectivity() {
-	eventBus.log('检测ipv4+ipv6网络连通性...');
-	const {ipv4Url, ipv6Url} = getConnectivityTestUrls();
-	const [ipv4Result, ipv6Result] = await Promise.allSettled([
-		checkUrl(ipv4Url),
-		checkUrl(ipv6Url)
-	]);
-	
-	const connectivity = {
-		ipv4Access: ipv4Result.status === 'fulfilled' && ipv4Result.value,
-		ipv6Access: ipv6Result.status === 'fulfilled' && ipv6Result.value,
-	};
-
-	if (connectivity.ipv4Access && connectivity.ipv6Access) {
-		setTrayStatus('green');
-	} else {
-		setTrayStatus('red');
-	}
-
-	return connectivity;
 }
 
 async function login(username, password) {
@@ -327,8 +280,6 @@ async function lgnLogin(username, password) {
 // Preserving original exports and adding the new checkStatus function
 module.exports = {
 	login,
-	checkUrl,
-	checkConnectivity,
 	susheLogin,
 	wlgnLogin,
 	lgn6Login,

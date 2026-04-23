@@ -5,8 +5,6 @@ const Store = require('electron-store');
 const si = require('systeminformation');
 const {
 	login,
-	checkUrl,
-	checkConnectivity,
 	susheLogin,
 	wlgnLogin,
 	lgn6Login,
@@ -17,7 +15,7 @@ const eventBus = require('./utils/event-bus');
 const {createTray} = require('./utils/tray');
 const quitAppModule = require('./utils/quitApp');
 const {createCredentialService} = require('./utils/credentials');
-const {createHeartbeatLoop} = require('./utils/heartbeat-loop');
+const {createHeartbeatLoop, checkUrl, checkConnectivity} = require('./utils/heartbeat-loop');
 const {registerIpcHandlers} = require('./utils/ipc-handlers');
 const {initLogManager} = require('./utils/log-manager');
 const {createUpdateService} = require('./utils/update');
@@ -52,7 +50,6 @@ const logManager = initLogManager({mainWindowProvider: () => mainWindow});
 const heartbeatLoop = createHeartbeatLoop({
 	store,
 	mainWindowProvider: () => mainWindow,
-	checkConnectivity,
 	updateTrafficData,
 	login,
 	getStoredCredentials,
