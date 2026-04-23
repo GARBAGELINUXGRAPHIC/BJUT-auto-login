@@ -880,7 +880,7 @@
 					<h2 class="section-title">运行日志</h2>
 					<button data-ripple class="btn"
 					        style="color: var(--muted); border: 1px solid var(--muted); padding: 0 4px; margin: 0; font-size: 10px; height: 18px; margin-top: -0.5px"
-					        onclick="document.getElementById('logArea').value = ''">清空
+					        onclick="clearLogs()">清空
 					</button>
 				</div>
 				<textarea id="logArea" class="log" readonly></textarea>
@@ -1093,7 +1093,6 @@
 	
 	// --- Settings & Credential Management ---
 	async function loadSettings() {
-		addLog('load settings...');
 		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
 		if (savedInterval) intervalSelect.value = savedInterval;
 		const savedAutoAuthEnabled = await ipcRenderer.invoke('get-setting', 'autoAuthEnabled');
@@ -1680,12 +1679,17 @@
 		}
 	});
 	
-	// --- Log Level Filtering ---
+	// --- Log ---
 	logLevelSelect.addEventListener('change', async (e) => {
 		currentLogLevel = e.target.value;
 		await ipcRenderer.invoke('set-setting', {key: 'logLevel', value: currentLogLevel});
 		addLog(`日志等级已改为: ${currentLogLevel.toUpperCase()}`, 'info');
 	});
+  
+  function clearLogs() {
+	  logArea.value = '';
+	  ipcRenderer.send('clear-logs');
+  }
 	
 	// Load saved log level
 	(async () => {

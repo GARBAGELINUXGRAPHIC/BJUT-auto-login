@@ -18,7 +18,8 @@ function registerIpcHandlers({
 	getLatestPollingSnapshot,
 	setAutoLoginInProgress,
 	getPendingUpdateInfo,
-	dismissPendingUpdateInfo
+	dismissPendingUpdateInfo,
+	clearBufferedLogs
 }) {
 	// Settings Management
 	ipcMain.handle('get-setting', async (event, key) => {
@@ -47,6 +48,10 @@ function registerIpcHandlers({
 		}
 
 		eventBus.log(entry.message, entry.level || 'debug');
+	});
+	
+	ipcMain.on('clear-logs', () => {
+		clearBufferedLogs();
 	});
 
 	// Credential Management

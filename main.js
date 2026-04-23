@@ -19,6 +19,7 @@ const quitAppModule = require('./utils/quitApp');
 const {createCredentialService} = require('./utils/credentials');
 const {createHeartbeatLoop} = require('./utils/heartbeat-loop');
 const {registerIpcHandlers} = require('./utils/ipc-handlers');
+const {initLogManager} = require('./utils/log-manager');
 const {createUpdateService} = require('./utils/update');
 const axios = require('axios');
 
@@ -41,17 +42,15 @@ const {encryptCredentials, decryptCredentials, getStoredCredentials} = createCre
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;
 let tray;
-let powerSaveBlockerId = null;
+// let powerSaveBlockerId = null;
 let isAutoLoginInProgress = false;
-const LOG_BUFFER_LIMIT = 200;
-const LOG_FLUSH_CHUNK_SIZE = 200;
-let bufferedLogs = [];
 let destroyWindowTimeout = null;
 let showWindowTimeout = null;
 let startUp = true;
 const WINDOW_SHOW_TIMEOUT = 250;
 const WINDOW_HIDE_TIMEOUT = 250;
 let isReadyToQuit = false;
+const logManager = initLogManager({mainWindowProvider: () => mainWindow});
 
 const heartbeatLoop = createHeartbeatLoop({
 	store,
@@ -136,7 +135,7 @@ if (!gotTheLock) {
 		}
 		mainWindow.webContents.on('did-finish-load', () => {
 			flushPendingUpdatePopup();
-			flushBufferedLogs(mainWindow);
+			logManager.flushBufferedLogs(mainWindow);
 		});
 		
 		mainWindow.on('close', (event) => {
@@ -260,7 +259,7 @@ if (!gotTheLock) {
 	
 	
 	eventBus.on('log', (message, level) => {
-		sendLogMessage(message, level);
+		logManager.sendLogMessage(message, level);
 	});
 
 	registerIpcHandlers({
@@ -285,56 +284,7 @@ if (!gotTheLock) {
 			isAutoLoginInProgress = value;
 		},
 		getPendingUpdateInfo,
-		dismissPendingUpdateInfo
+		dismissPendingUpdateInfo,
+		clearBufferedLogs: logManager.clearBufferedLogs
 	});
-	
-	
-	// --- Utility Functions --- //
-
-	function enqueueLog(message, level = 'debug') {
-		bufferedLogs.push({
-			message,
-			level,
-			timestamp: new Date().toISOString()
-		});
-		if (bufferedLogs.length > LOG_BUFFER_LIMIT) {
-			bufferedLogs = bufferedLogs.slice(-LOG_BUFFER_LIMIT);
-		}
-	}
-
-	function flushBufferedLogs(targetWindow) {
-		if (!targetWindow || targetWindow.isDestroyed() || bufferedLogs.length === 0) {
-			return;
-		}
-
-		const logsToFlush = bufferedLogs.slice();
-		let index = 0;
-
-		function flushChunk() {
-			if (!mainWindow || mainWindow !== targetWindow || targetWindow.isDestroyed()) {
-				return;
-			}
-
-			const chunk = logsToFlush.slice(index, index + LOG_FLUSH_CHUNK_SIZE);
-			if (chunk.length === 0) {
-				return;
-			}
-
-			targetWindow.webContents.send('log-message-batch', chunk);
-			index += chunk.length;
-
-			if (index < logsToFlush.length) {
-				setTimeout(flushChunk, 16);
-			}
-		}
-
-		flushChunk();
-	}
-	
-	function sendLogMessage(message, level = 'debug') {
-		enqueueLog(message, level);
-		if (mainWindow && !mainWindow.isDestroyed()) {
-			mainWindow.webContents.send('log-message', bufferedLogs[bufferedLogs.length - 1]);
-		}
-	}
 }
