@@ -1038,6 +1038,8 @@
 	const testIpv4UrlBtn = document.getElementById('test-ipv4-url-btn');
 	const testIpv6UrlBtn = document.getElementById('test-ipv6-url-btn');
 	const connectivityTestUrlStatus = document.getElementById('connectivity-test-url-status');
+	const DEFAULT_IPV4_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt';
+	const DEFAULT_IPV6_TEST_URL = 'http://ipv6.msftconnecttest.com/connecttest.txt';
 	const checkUpdatesBtn = document.getElementById('check-updates-btn');
 	const logLevelSelect = document.getElementById('log-level-select');
 	const themeSelect = document.getElementById('theme-select');
@@ -1104,8 +1106,8 @@
 		if (startOnLogin) startOnLoginSwitch.checked = true;
 		const savedIpv4TestUrl = await ipcRenderer.invoke('get-setting', 'ipv4TestUrl');
 		const savedIpv6TestUrl = await ipcRenderer.invoke('get-setting', 'ipv6TestUrl');
-		ipv4TestUrlInput.value = savedIpv4TestUrl || 'https://api-ipv4.ip.sb/ip';
-		ipv6TestUrlInput.value = savedIpv6TestUrl || 'https://api-ipv6.ip.sb/ip';
+		ipv4TestUrlInput.value = savedIpv4TestUrl || DEFAULT_IPV4_TEST_URL;
+		ipv6TestUrlInput.value = savedIpv6TestUrl || DEFAULT_IPV6_TEST_URL;
 		await loadCredentials();
 	}
 
