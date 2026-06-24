@@ -77,6 +77,18 @@ const {
 	setMainWindow
 } = updateService;
 
+function checkUpdatesOnStartup() {
+	const autoUpdateEnabled = store.get('autoUpdate', true);
+	if (!autoUpdateEnabled) {
+		eventBus.log('启动时自动检查更新已禁用', 'info');
+		return;
+	}
+
+	checkUpdates().catch((error) => {
+		eventBus.log(`启动时自动检查更新失败: ${error.message}`, 'warn');
+	});
+}
+
 function handleMainWindowChange(window) {
 	mainWindow = window;
 	setMainWindow(window);
@@ -130,6 +142,7 @@ if (!gotTheLock) {
 		// }
 		
 		restartPolling('startup');
+		checkUpdatesOnStartup();
 	});
 	
 	app.on('activate', function () {

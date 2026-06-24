@@ -1415,16 +1415,6 @@
 			autoUpdateSwitch.checked = autoUpdateEnabled;
 		}
 		
-		// Delay update check to allow network stack to initialize
-		// Only check if auto-update is enabled
-		if (autoUpdateSwitch.checked) {
-			const intervalMs = parseInt(intervalSelect.value, 10);
-			const updateCheckDelay = intervalMs * 2.5;
-			setTimeout(async () => {
-				await ipcRenderer.invoke('check-updates');
-			}, updateCheckDelay);
-		}
-		
 		// --- Ripple Effect Handling ---
 		const ripple = new Ripple();
 		const rippleElements = document.querySelectorAll('[data-ripple]');
