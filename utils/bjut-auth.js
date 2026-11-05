@@ -129,7 +129,7 @@ function parse_response(str) {
 }
 
 async function updateTrafficData() {
-	const url = 'https://lgn6.bjut.edu.cn:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh';
+	const url = 'https://lgn.bjut.edu.cn:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh';
 	try {
 		const res = await axios.get(url, {timeout: 5000});
 		const jsonobj = parse_response(res.data);
