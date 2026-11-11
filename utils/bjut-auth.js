@@ -1,6 +1,7 @@
 // utils/bjut-auth.js
 const si = require('systeminformation');
-const axios = require('axios');
+const {networkClient: axios, getAuthMode} = require('./network-settings');
+const {isConnectivitySatisfied} = require('./auth-mode');
 const qs = require('qs');
 const cheerio = require('cheerio');
 const eventBus = require('./event-bus');
@@ -73,12 +74,20 @@ async function getBJUTauthServersReachability() {
 	return Object.fromEntries(results);
 }
 
-async function login(username, password) {
+async function login(username, password, mode = getAuthMode()) {
 	try {
 		eventBus.log('尝试登录...', 'info');
-		const accessibility = await checkConnectivity();
+		const accessibility = await checkConnectivity(mode);
 		const ipv4Access = accessibility.ipv4Access;
 		const ipv6Access = accessibility.ipv6Access;
+		if (mode === 'lgn6-only') {
+			if (isConnectivitySatisfied(accessibility, mode)) {
+				eventBus.log('IPv6 已连通，无需认证', 'info');
+			} else {
+				await lgn6Login(username, password);
+			}
+			return;
+		}
 		
 		const reachable = await getBJUTauthServersReachability();
 		eventBus.log(`Reachability check: sushe: ${reachable.sushe}, wlgn: ${reachable.wlgn}, lgn: ${reachable.lgn}, lgn6: ${reachable.lgn6}`);
@@ -128,8 +137,9 @@ function parse_response(str) {
 	}
 }
 
-async function updateTrafficData() {
-	const url = 'https://lgn.bjut.edu.cn:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh';
+async function updateTrafficData(mode = getAuthMode()) {
+	const host = mode === 'lgn6-only' ? 'lgn6.bjut.edu.cn' : 'lgn.bjut.edu.cn';
+	const url = `https://${host}:802/eportal/portal/page/loadUserInfo?&program_index=79225954737327212323222f212e2723&page_index=755e577b7c4e27212323222f212e2320&user_account=&wlan_user_ip=&wlan_user_ipv6=&wlan_user_mac=262626262626262626262626&jsVersion=22384e&encrypt=1&v=8237&lang=zh`;
 	try {
 		const res = await axios.get(url, {timeout: 5000});
 		const jsonobj = parse_response(res.data);

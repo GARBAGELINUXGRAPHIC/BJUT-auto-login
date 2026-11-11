@@ -20,7 +20,7 @@ const {registerIpcHandlers} = require('./utils/ipc-handlers');
 const {initLogManager} = require('./utils/log-manager');
 const {createUpdateService} = require('./utils/update');
 const {createWindowManager} = require('./utils/window-management');
-const axios = require('axios');
+const {networkClient: axios, initNetworkSettings} = require('./utils/network-settings');
 
 function sleep(ms) {
 	return new Promise((resolve) => setTimeout(resolve, ms));
@@ -28,6 +28,7 @@ function sleep(ms) {
 
 // Initialize persistent store
 const store = new Store();
+initNetworkSettings(store);
 
 const {encryptCredentials, decryptCredentials, getStoredCredentials} = createCredentialService({
 	app,
@@ -72,6 +73,8 @@ const updateService = createUpdateService({
 const {
 	flushPendingUpdatePopup,
 	checkUpdates,
+	startAutomaticChecks,
+	stopAutomaticChecks,
 	getPendingUpdateInfo,
 	dismissPendingUpdateInfo,
 	setMainWindow
@@ -84,9 +87,7 @@ function checkUpdatesOnStartup() {
 		return;
 	}
 
-	checkUpdates().catch((error) => {
-		eventBus.log(`启动时自动检查更新失败: ${error.message}`, 'warn');
-	});
+	startAutomaticChecks();
 }
 
 function handleMainWindowChange(window) {
@@ -171,6 +172,7 @@ if (!gotTheLock) {
 			
 			// other cleaning
 			stopPolling();
+			stopAutomaticChecks();
 			// Stop power save blocker before quitting
 			// if (powerSaveBlockerId !== null && powerSaveBlocker.isStarted(powerSaveBlockerId)) {
 			// 	powerSaveBlocker.stop(powerSaveBlockerId);
@@ -203,6 +205,8 @@ if (!gotTheLock) {
 		lgnLogin46,
 		updateTrafficData,
 		checkUpdates,
+		startAutomaticChecks,
+		stopAutomaticChecks,
 		getLatestPollingSnapshot,
 		setAutoLoginInProgress: (value) => {
 			isAutoLoginInProgress = value;

@@ -1,4 +1,5 @@
-const axios = require('axios');
+const {networkClient: axios, getAuthMode} = require('./network-settings');
+const {isConnectivitySatisfied} = require('./auth-mode');
 const Store = require('electron-store');
 const eventBus = require('./event-bus');
 const {setTrayStatus} = require('./tray');
@@ -23,20 +24,21 @@ function getConnectivityTestUrls() {
 	};
 }
 
-async function checkConnectivity() {
-	eventBus.log('检测ipv4+ipv6网络连通性...');
+async function checkConnectivity(mode = getAuthMode()) {
+	eventBus.log(mode === 'lgn6-only' ? '检测 IPv6 网络连通性...' : '检测ipv4+ipv6网络连通性...');
 	const {ipv4Url, ipv6Url} = getConnectivityTestUrls();
 	const [ipv4Result, ipv6Result] = await Promise.allSettled([
-		checkUrl(ipv4Url),
+		mode === 'lgn6-only' ? Promise.resolve(null) : checkUrl(ipv4Url),
 		checkUrl(ipv6Url)
 	]);
 
 	const connectivity = {
 		ipv4Access: ipv4Result.status === 'fulfilled' && ipv4Result.value,
 		ipv6Access: ipv6Result.status === 'fulfilled' && ipv6Result.value,
+		authMode: mode,
 	};
 
-	if (connectivity.ipv4Access && connectivity.ipv6Access) {
+	if (isConnectivitySatisfied(connectivity, mode)) {
 		setTrayStatus('green');
 	} else {
 		setTrayStatus('red');
@@ -81,12 +83,13 @@ function createHeartbeatLoop({
 
 		isPollingCheckInProgress = true;
 		try {
-			let connectivity = await checkConnectivity();
+			const mode = getAuthMode();
+			let connectivity = await checkConnectivity(mode);
 
 			let trafficInfo = null;
-			if (connectivity.ipv4Access && connectivity.ipv6Access) {
+			if (isConnectivitySatisfied(connectivity, mode)) {
 				try {
-					trafficInfo = await updateTrafficData();
+					trafficInfo = await updateTrafficData(mode);
 				} catch (error) {
 					eventBus.log(`获取流量信息失败: ${error.message}`, 'warn');
 				}
@@ -96,12 +99,12 @@ function createHeartbeatLoop({
 					setAutoLoginInProgress(true);
 					try {
 						eventBus.log('无网络，尝试自动登录...', 'info');
-						await login(credentials.username, credentials.password);
+						await login(credentials.username, credentials.password, mode);
 						await sleep(5000);
-						connectivity = await checkConnectivity();
-						if (connectivity.ipv4Access && connectivity.ipv6Access) {
+						connectivity = await checkConnectivity(mode);
+						if (isConnectivitySatisfied(connectivity, mode)) {
 							try {
-								trafficInfo = await updateTrafficData();
+									trafficInfo = await updateTrafficData(mode);
 							} catch (error) {
 								eventBus.log(`自动登录后获取流量信息失败: ${error.message}`, 'warn');
 							}

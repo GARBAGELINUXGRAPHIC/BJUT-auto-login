@@ -1,3 +1,6 @@
+const {getNetworkOverrides, applyAuthModeOverrides, getAuthMode} = require('./network-settings');
+const {AUTH_MODES} = require('./auth-mode');
+
 function registerIpcHandlers({
 	ipcMain,
 	app,
@@ -15,6 +18,8 @@ function registerIpcHandlers({
 	lgnLogin46,
 	updateTrafficData,
 	checkUpdates,
+	startAutomaticChecks,
+	stopAutomaticChecks,
 	getLatestPollingSnapshot,
 	setAutoLoginInProgress,
 	getPendingUpdateInfo,
@@ -23,16 +28,33 @@ function registerIpcHandlers({
 }) {
 	// Settings Management
 	ipcMain.handle('get-setting', async (event, key) => {
+		if (key === 'networkOverrides') return getNetworkOverrides();
+		if (key === 'authMode') return getAuthMode();
 		return store.get(key);
 	});
 
 	ipcMain.handle('set-setting', async (event, {key, value}) => {
+		if (key === 'authMode') {
+			if (!AUTH_MODES.includes(value)) throw new Error('不支持的认证模式');
+			const networkOverrides = applyAuthModeOverrides(getNetworkOverrides(), value);
+			store.set({authMode: value, networkOverrides});
+			restartPolling('auth-mode');
+			return true;
+		}
+		if (key === 'networkOverrides') value = applyAuthModeOverrides(value, getAuthMode());
 		store.set(key, value);
 		if (key === 'logLevel') {
 			eventBus.setLogLevel(value);
 		}
 		if (key === 'pollingInterval') {
 			restartPolling();
+		}
+		if (key === 'autoUpdate') {
+			if (value) {
+				startAutomaticChecks();
+			} else {
+				stopAutomaticChecks();
+			}
 		}
 		return true;
 	});
@@ -101,12 +123,16 @@ function registerIpcHandlers({
 	});
 
 	// Specific Login Handlers
+	function specificLogin(handler, username, password, ...args) {
+		if (getAuthMode() === 'lgn6-only') return lgn6Login(username, password);
+		return handler(username, password, ...args);
+	}
 	ipcMain.handle('sushe-login', async (event, {username, password}) => {
-		return await susheLogin(username, password);
+		return await specificLogin(susheLogin, username, password);
 	});
 
 	ipcMain.handle('wlgn-login', async (event, {username, password}) => {
-		return await wlgnLogin(username, password);
+		return await specificLogin(wlgnLogin, username, password);
 	});
 
 	ipcMain.handle('lgn6-login', async (event, {username, password}) => {
@@ -114,15 +140,15 @@ function registerIpcHandlers({
 	});
 
 	ipcMain.handle('lgn-login-46', async (event, {username, password}) => {
-		return await lgnLogin46(username, password);
+		return await specificLogin(lgnLogin46, username, password);
 	});
 
 	ipcMain.handle('lgn6-login-46', async (event, {username, password}) => {
-		return await lgn6Login(username, password, true);
+		return await specificLogin(lgn6Login, username, password, true);
 	});
 
 	ipcMain.handle('get-traffic-info', async () => {
-		return await updateTrafficData();
+		return await updateTrafficData(getAuthMode());
 	});
 
 	ipcMain.handle('check-updates', async () => {

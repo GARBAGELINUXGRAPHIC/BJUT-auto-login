@@ -4,15 +4,65 @@ let eventBus;
 let mainWindow = null;
 let pendingUpdateInfo = null;
 
+const UPDATE_RETRY_INTERVAL_MS = 15 * 60 * 1000;
+const UPDATE_REQUEST_TIMEOUT_MS = 15 * 1000;
+
 function createUpdateService(deps) {
 	app = deps.app;
 	axios = deps.axios;
 	eventBus = deps.eventBus;
 	mainWindow = deps.mainWindow || null;
+	let automaticChecksEnabled = false;
+	let hasCheckedSuccessfully = false;
+	let retryTimeout = null;
+	let checkInProgress = null;
+
+	function clearRetryTimeout() {
+		if (retryTimeout !== null) {
+			clearTimeout(retryTimeout);
+			retryTimeout = null;
+		}
+	}
+
+	function checkUpdates() {
+		if (checkInProgress) {
+			return checkInProgress;
+		}
+
+		clearRetryTimeout();
+		checkInProgress = performUpdateCheck().then((result) => {
+			hasCheckedSuccessfully = true;
+			return result;
+		}).finally(() => {
+			checkInProgress = null;
+			if (automaticChecksEnabled && !hasCheckedSuccessfully) {
+				eventBus.log('尚未成功检查更新，将在 15 分钟后重试', 'info');
+				retryTimeout = setTimeout(() => {
+					retryTimeout = null;
+					checkUpdates().catch(() => {});
+				}, UPDATE_RETRY_INTERVAL_MS);
+			}
+		});
+		return checkInProgress;
+	}
+
+	function startAutomaticChecks() {
+		automaticChecksEnabled = true;
+		if (!hasCheckedSuccessfully && retryTimeout === null) {
+			checkUpdates().catch(() => {});
+		}
+	}
+
+	function stopAutomaticChecks() {
+		automaticChecksEnabled = false;
+		clearRetryTimeout();
+	}
 	
 	return {
 		flushPendingUpdatePopup,
 		checkUpdates,
+		startAutomaticChecks,
+		stopAutomaticChecks,
 		getPendingUpdateInfo,
 		dismissPendingUpdateInfo,
 		setMainWindow
@@ -49,13 +99,13 @@ function createUpdatePopup(latestVersion) {
 	eventBus.log(`Update notification shown for version ${latestVersion}`);
 }
 
-async function checkUpdates() {
+async function performUpdateCheck() {
 	try {
 		eventBus.log('正在检测更新...', 'info');
 		eventBus.log('Current Version: ' + app.getVersion()); // X.Y.Z
 		const [tagRes, notesRes] = await Promise.all([
-			axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestTag'),
-			axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestReleaseNotes')
+			axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestTag', {timeout: UPDATE_REQUEST_TIMEOUT_MS}),
+			axios.get('https://ipv4.quitsense.cn:10443/api/bjutautologin/getLatestReleaseNotes', {timeout: UPDATE_REQUEST_TIMEOUT_MS})
 		]);
 		if (!tagRes.data.success) {
 			throw new Error('无法获取最新版本: ' + tagRes.data.message);

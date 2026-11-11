@@ -32,7 +32,7 @@ function createWindowManager({
 
 		mainWindow = new BrowserWindow({
 			width: 880,
-			height: 727,
+			height: 689,
 			show: false,
 			frame: true,
 			webPreferences: {

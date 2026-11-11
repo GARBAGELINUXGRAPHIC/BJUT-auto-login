@@ -591,12 +591,83 @@
 			margin-bottom: 12px;
 		}
 
+		.segmented-control {
+			--segment-count: 2;
+			--segmented-track: #f0f0f2;
+			--segmented-selected: #ffffff;
+			--segmented-text: #1d1d1f;
+			--segmented-secondary: #6e6e73;
+			position: relative;
+			display: grid;
+			grid-template-columns: repeat(var(--segment-count), 1fr);
+			width: 250px;
+			padding: 3px;
+			border-radius: 8px;
+			background: var(--segmented-track);
+			isolation: isolate;
+		}
+		[data-apple-scheme=dark] .segmented-control {
+			--segmented-track: #2d2d2d;
+			--segmented-selected: #434343;
+			--segmented-text: #f5f4f5;
+			--segmented-secondary: #a6a5a9;
+		}
+		.segmented-control:has(> :nth-child(2) input:checked) { --segment-index: 1; }
+		.segmented-control:has(> :nth-child(3) input:checked) { --segment-index: 2; }
+		.segmented-control:has(> :nth-child(4) input:checked) { --segment-index: 3; }
+		.segmented-control::before {
+			content: '';
+			position: absolute;
+			top: 3px;
+			bottom: 3px;
+			left: 3px;
+			width: calc((100% - 6px) / var(--segment-count));
+			border-radius: 6px;
+			background: var(--segmented-selected);
+			box-shadow: 0 1px 5px #0002;
+			transform: translateX(calc(var(--segment-index, 0) * 100%));
+			transition: transform .22s ease, background var(--theme-transition) ease;
+		}
+		.segmented-option {
+			position: relative;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			min-height: 30px;
+			border-radius: 6px;
+			color: var(--segmented-secondary);
+			font-size: 12px;
+			cursor: pointer;
+		}
+		.segmented-option:has(input:checked) { color: var(--segmented-text); }
+		.segmented-option:hover:not(:has(input:disabled)) { color: color-mix(in srgb, var(--segmented-text) 75%, var(--segmented-secondary)); }
+		.segmented-option:active:not(:has(input:disabled)) { color: var(--segmented-text); }
+		.segmented-option:has(input:focus-visible) { outline: 2px solid var(--primary); }
+		.segmented-option:has(input:disabled) { cursor: default; opacity: .6; }
+		.segmented-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+
 		.overlay-tip {
 			margin: 4px 0 0;
 			font-size: 12px;
 			font-weight: 500;
 			color: var(--muted);
 		}
+
+		.override-table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-bottom: 8px;
+			font-size: 13px;
+		}
+		.override-table th, .override-table td {
+			padding: 8px 6px;
+			text-align: left;
+		}
+		.override-table th { color: var(--muted); font-weight: 600; }
+		.override-table th:first-child { width: 64px; }
+		.override-table th:nth-child(2) { width: 90px; text-align: center; }
+		.override-table td:nth-child(2) { text-align: center; }
+		.override-table .input { height: 38px; min-width: 0; }
 
 		.status-btn {
 			position: relative;
@@ -797,17 +868,6 @@
 						</select>
 					</div>
 					<div class="switch-row" style="height: 38px;">
-						<span>日志等级</span>
-						<select id="log-level-select">
-							<option value="debug" selected>调试</option>
-							<option value="info">信息</option>
-							<option value="warn">警告</option>
-							<option value="error">错误</option>
-						</select>
-					</div>
-				</div>
-				<div class="row-2" style="margin-top:8px;">
-					<div class="switch-row" style="height: 38px;">
 						<span>主题</span>
 						<select id="theme-select">
 							<option value="auto" selected>自动</option>
@@ -815,9 +875,15 @@
 							<option value="dark">深色</option>
 						</select>
 					</div>
-					<button data-ripple id="check-updates-btn" class="btn status-btn" data-state="idle" style="height: 100%;"><span class="status-btn-track"><span class="status-btn-text">检查更新</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
 				</div>
 				<div class="row-2" style="margin-top:8px;">
+					<div class="switch-row">
+						<span>自动更新</span>
+						<label class="switch" title="启动时检查更新，失败后每 15 分钟重试，成功后停止">
+							<input type="checkbox" id="auto-update-switch" checked>
+							<span class="slider"></span>
+						</label>
+					</div>
 					<div class="switch-row">
 						<span>开机自启</span>
 						<label class="switch" title="系统登录后自动启动">
@@ -825,16 +891,10 @@
 							<span class="slider"></span>
 						</label>
 					</div>
-					<div class="switch-row">
-						<span>自动更新</span>
-						<label class="switch" title="启动时自动检查更新">
-							<input type="checkbox" id="auto-update-switch" checked>
-							<span class="slider"></span>
-						</label>
-					</div>
 				</div>
-				<div class="row-2" style="margin-top:8px; grid-template-columns:1fr;">
-					<button data-ripple id="configure-ipv4-ipv6-connection-test" class="btn" style="height: 38px;">配置IPv4/IPv6连通性测试接口URL</button>
+				<div class="row-2" style="margin-top:8px;">
+					<button data-ripple id="check-updates-btn" class="btn status-btn" data-state="idle" style="height: 38px;"><span class="status-btn-track"><span class="status-btn-text">检查更新</span><span class="status-btn-state" data-role="loading"><span class="status-btn-spinner"></span></span><span class="status-btn-state" data-role="success"><span class="status-btn-icon success">✓</span></span><span class="status-btn-state" data-role="error"><span class="status-btn-icon error">✕</span></span></span></button>
+					<button data-ripple id="configure-ipv4-ipv6-connection-test" class="btn" style="height: 38px;">高级设置</button>
 				</div>
 			</section>
 		</div>
@@ -891,9 +951,9 @@
 
 <div id="configure-ipv4-ipv6-connection-test-overlay"
 	 style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
-	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
+	<div class="card" style="width: 90%; max-width: 620px; max-height: 90vh; overflow-y: auto; animation: overlay-appear .2s ease-out forwards; padding: 16px 24px 24px 24px">
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-			<h2 class="section-title" style="margin: 0;">配置连通性测试 URL</h2>
+			<h2 class="section-title" style="margin: 0;">高级设置</h2>
 			<button data-ripple id="close-configure-ipv4-ipv6-connection-test-btn" class="btn"
 					style="padding: 4px; line-height: 1; border-radius: 1000px; aspect-ratio: 1; text-align: center">
 				<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"
@@ -903,7 +963,29 @@
 				</svg>
 			</button>
 		</div>
-		<div class="field" style="margin-bottom: 10px;">
+		<div class="field" style="margin-bottom: 12px; margin-left: 6px; margin-right: 6px; display: flex; justify-content: space-between">
+			<span style="place-self: center;">认证模式</span>
+			<div id="auth-mode-control" class="segmented-control" role="radiogroup" aria-label="认证模式">
+				<label class="segmented-option"><input type="radio" name="auth-mode" value="dual" checked><span>IPv4 + IPv6</span></label>
+				<label class="segmented-option"><input type="radio" name="auth-mode" value="lgn6-only"><span>仅 lgn6</span></label>
+			</div>
+		</div>
+		<div class="field" style="margin-bottom: 12px; margin-left: 6px; margin-right: 6px; display: flex; justify-content: space-between">
+			<span id="log-level-label" style="place-self: center;">日志等级</span>
+			<div id="log-level-control" class="segmented-control" role="radiogroup" aria-labelledby="log-level-label" style="--segment-count: 4">
+				<label class="segmented-option"><input type="radio" name="log-level" value="debug" checked><span>调试</span></label>
+				<label class="segmented-option"><input type="radio" name="log-level" value="info"><span>信息</span></label>
+				<label class="segmented-option"><input type="radio" name="log-level" value="warn"><span>警告</span></label>
+				<label class="segmented-option"><input type="radio" name="log-level" value="error"><span>错误</span></label>
+			</div>
+		</div>
+		<table class="override-table" aria-label="DNS 和认证地址覆盖">
+			<thead><tr><th scope="col">服务</th><th scope="col">启用覆盖</th><th scope="col">覆盖的地址</th></tr></thead>
+			<tbody id="network-overrides-body"></tbody>
+		</table>
+		<p class="overlay-tip" style="margin-left: 6px; margin-right: 6px;">认证地址支持域名或 IP，IPv6 请使用 [...] 格式。DNS 填写服务器 IP，仅影响本应用。关闭覆盖后使用原有地址和系统 DNS。</p>
+		<p id="network-overrides-status" class="overlay-tip" role="status" style="margin-bottom: 18px; margin-left: 6px; margin-right: 6px;">输入后自动保存。</p>
+		<div class="field" style="margin-bottom: 10px; margin-left: 6px; margin-right: 6px;">
 			<label class="label" for="ipv4-test-url">IPv4 测试网址</label>
 			<div class="overlay-field-row">
 				<div class="input-wrapper">
@@ -919,7 +1001,7 @@
 				</button>
 			</div>
 		</div>
-		<div class="field">
+		<div class="field" style="margin-left: 6px; margin-right: 6px;">
 			<label class="label" for="ipv6-test-url">IPv6 测试网址</label>
 			<div class="overlay-field-row">
 				<div class="input-wrapper">
@@ -935,7 +1017,7 @@
 				</button>
 			</div>
 		</div>
-		<p id="connectivity-test-url-status" class="overlay-tip">输入后自动保存，网络检测会直接使用这里的 URL。</p>
+		<p id="connectivity-test-url-status" class="overlay-tip" style="margin-left: 6px; margin-right: 6px;">输入后自动保存，网络检测会直接使用这里的 URL。</p>
 	</div>
 </div>
 
@@ -968,7 +1050,7 @@
 
 <div id="help-overlay"
      style="display: none; position: fixed; inset: 0; background-color: rgba(0,0,0,0); z-index: 999; align-items: center; justify-content: center; transition: background-color .2s ease-out;">
-	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards;">
+	<div class="card" style="width: 90%; max-width: 500px; animation: overlay-appear .2s ease-out forwards; padding: 16px 24px 24px 24px">
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
 			<h2 class="section-title" style="margin: 0;">登录按钮说明</h2>
 			<button data-ripple id="close-help-btn" class="btn"
@@ -996,6 +1078,7 @@
 <script>
 	const {ipcRenderer} = require('electron');
 	const {shell} = require('electron');
+	const {normalizeAuthMode, isConnectivitySatisfied} = require('./utils/auth-mode');
 	
 	// --- DOM Elements ---
 	const usernameInput = document.getElementById('username');
@@ -1004,6 +1087,7 @@
 	const logArea = document.getElementById('logArea');
 	const intervalSelect = document.getElementById('interval-select');
 	const autoAuthSwitch = document.getElementById('auto-auth-switch');
+	const authModeControl = document.getElementById('auth-mode-control');
 	const startOnLoginSwitch = document.getElementById('start-on-login-switch');
 	const ipv4Status = document.getElementById('ipv4-status');
 	const ipv6Status = document.getElementById('ipv6-status');
@@ -1038,19 +1122,22 @@
 	const testIpv4UrlBtn = document.getElementById('test-ipv4-url-btn');
 	const testIpv6UrlBtn = document.getElementById('test-ipv6-url-btn');
 	const connectivityTestUrlStatus = document.getElementById('connectivity-test-url-status');
+	const networkOverridesBody = document.getElementById('network-overrides-body');
+	const networkOverridesStatus = document.getElementById('network-overrides-status');
 	const DEFAULT_IPV4_TEST_URL = 'http://www.msftconnecttest.com/connecttest.txt';
 	const DEFAULT_IPV6_TEST_URL = 'http://ipv6.msftconnecttest.com/connecttest.txt';
 	const checkUpdatesBtn = document.getElementById('check-updates-btn');
-	const logLevelSelect = document.getElementById('log-level-select');
+	const logLevelControl = document.getElementById('log-level-control');
 	const themeSelect = document.getElementById('theme-select');
 	const autoUpdateSwitch = document.getElementById('auto-update-switch');
 	
 	// --- State ---
 	let isAutoAuthEnabled = true;
+	let authMode = 'dual';
 	let isLoginInProgress = false;
 	let userHasScrolled = false;
 	let scrollTimeout = null;
-	let currentLogLevel = 'info';
+	let currentLogLevel = logLevelControl.querySelector('input:checked').value;
 	let pendingUpdateInfo = null;
 	
 	// Log level hierarchy: error > warn > info > debug
@@ -1095,6 +1182,7 @@
 	
 	// --- Settings & Credential Management ---
 	async function loadSettings() {
+		authMode = normalizeAuthMode(await ipcRenderer.invoke('get-setting', 'authMode'));
 		const savedInterval = await ipcRenderer.invoke('get-setting', 'pollingInterval');
 		if (savedInterval) intervalSelect.value = savedInterval;
 		const savedAutoAuthEnabled = await ipcRenderer.invoke('get-setting', 'autoAuthEnabled');
@@ -1108,8 +1196,81 @@
 		const savedIpv6TestUrl = await ipcRenderer.invoke('get-setting', 'ipv6TestUrl');
 		ipv4TestUrlInput.value = savedIpv4TestUrl || DEFAULT_IPV4_TEST_URL;
 		ipv6TestUrlInput.value = savedIpv6TestUrl || DEFAULT_IPV6_TEST_URL;
+		const overrides = await ipcRenderer.invoke('get-setting', 'networkOverrides');
+		for (const [key, label] of Object.entries({dns: 'DNS', sushe: '宿舍', lgn: 'lgn', lgn6: 'lgn6', wlgn: 'wlgn'})) {
+			const row = networkOverridesBody.insertRow();
+			row.dataset.key = key;
+			row.innerHTML = `<th scope="row">${label}</th><td><label class="switch"><input type="checkbox" aria-label="启用 ${label} 覆盖"><span class="slider"></span></label></td><td><div class="input-wrapper"><input class="input" type="text" spellcheck="false" aria-label="${label} 覆盖的地址"></div></td>`;
+			row.querySelector('input[type="checkbox"]').checked = overrides[key].enabled;
+			row.querySelector('input[type="text"]').value = overrides[key].address;
+		}
+		applyAuthMode(authMode);
 		await loadCredentials();
 	}
+
+	function setLoginControlsDisabled(disabled = isLoginInProgress) {
+		for (const button of [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn]) {
+			button.disabled = disabled || (authMode === 'lgn6-only' && button !== loginBtn && button !== lgn6LoginBtn);
+		}
+		authModeControl.querySelectorAll('input').forEach(input => { input.disabled = disabled; });
+	}
+
+	function applyAuthMode(mode) {
+		authMode = normalizeAuthMode(mode);
+		authModeControl.querySelectorAll('input').forEach(input => { input.checked = input.value === authMode; });
+		const lgn6Override = networkOverridesBody.querySelector('[data-key="lgn6"] input[type="checkbox"]');
+		if (lgn6Override) {
+			if (authMode === 'lgn6-only') lgn6Override.checked = true;
+			lgn6Override.disabled = authMode === 'lgn6-only';
+			lgn6Override.closest('label').title = authMode === 'lgn6-only' ? '仅 lgn6 模式固定使用此 IP 地址' : '';
+		}
+		if (authMode === 'lgn6-only') {
+			ipv4Status.textContent = 'IPv4: 未检测';
+			ipv4Status.className = 'pill';
+		}
+		setLoginControlsDisabled();
+	}
+
+	authModeControl.addEventListener('change', async event => {
+		const previous = authMode;
+		setLoginControlsDisabled(true);
+		try {
+			if (!await saveNetworkOverrides()) throw new Error('请先修正覆盖地址');
+			await ipcRenderer.invoke('set-setting', {key: 'authMode', value: event.target.value});
+			applyAuthMode(event.target.value);
+		} catch (error) {
+			applyAuthMode(previous);
+			networkOverridesStatus.textContent = `认证模式未保存：${error.message}`;
+			networkOverridesStatus.style.color = 'var(--danger)';
+			addLog(`认证模式未保存：${error.message}`, 'error');
+		} finally {
+			setLoginControlsDisabled();
+		}
+	});
+
+	async function saveNetworkOverrides() {
+		const value = Object.fromEntries(Array.from(networkOverridesBody.rows, row => [row.dataset.key, {
+			enabled: row.querySelector('input[type="checkbox"]').checked,
+			address: row.querySelector('input[type="text"]').value
+		}]));
+		try {
+			await ipcRenderer.invoke('set-setting', {key: 'networkOverrides', value});
+			networkOverridesStatus.textContent = '已自动保存，后续请求立即生效。';
+			networkOverridesStatus.style.color = '';
+			return true;
+		} catch (error) {
+			networkOverridesStatus.textContent = `未保存：${error.message}`;
+			networkOverridesStatus.style.color = 'var(--danger)';
+			return false;
+		}
+	}
+	const debouncedSaveNetworkOverrides = debounce(saveNetworkOverrides, 500);
+	networkOverridesBody.addEventListener('input', event => {
+		if (event.target.type === 'text') debouncedSaveNetworkOverrides();
+	});
+	networkOverridesBody.addEventListener('change', event => {
+		if (event.target.type === 'checkbox') debouncedSaveNetworkOverrides();
+	});
 
 	async function saveConnectivityTestUrl(key, value) {
 		await ipcRenderer.invoke('set-setting', {key, value: value.trim()});
@@ -1224,8 +1385,8 @@
 		
 
 		const timeString = new Date(checkedAt).toLocaleTimeString();
-		ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access ? 'OK' : 'Failed'}`;
-		ipv4Status.className = `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
+		ipv4Status.textContent = `IPv4: ${connectivity.ipv4Access === null ? '未检测' : connectivity.ipv4Access ? 'OK' : 'Failed'}`;
+		ipv4Status.className = connectivity.ipv4Access === null ? 'pill' : `pill ${connectivity.ipv4Access ? 'net-ok' : 'net-fail'}`;
 		ipv6Status.textContent = `IPv6: ${connectivity.ipv6Access ? 'OK' : 'Failed'}`;
 		ipv6Status.className = `pill ${connectivity.ipv6Access ? 'net-ok' : 'net-fail'}`;
 		netLastChecked.textContent = `上次检查：${timeString}`;
@@ -1282,15 +1443,14 @@
 		}
 		
 		isLoginInProgress = true;
-		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
-		buttons.forEach(btn => btn.disabled = true);
+		setLoginControlsDisabled(true);
 		setTestButtonState(loginBtn, 'loading');
 		
 		try {
 			await ipcRenderer.invoke('network-login', {username, password});
 			await sleep(5000); // 等待5s网络登录
 				const accessibility = await runNetworkCheck();
-				if(accessibility.ipv4Access && accessibility.ipv6Access) {
+				if (isConnectivitySatisfied(accessibility, authMode)) {
 					addLog("认证成功", 'info')
 					setTestButtonState(loginBtn, 'success');
 				} else {
@@ -1301,8 +1461,8 @@
 			addLog('认证出错: ' + error.message, 'error');
 			setTestButtonState(loginBtn, 'error');
 		} finally {
-			buttons.forEach(btn => btn.disabled = false);
 			isLoginInProgress = false;
+			setLoginControlsDisabled();
 			setTimeout(() => setTestButtonState(loginBtn, 'idle'), 1200);
 		}
 	}
@@ -1312,7 +1472,7 @@
 		setTestButtonState(refreshBtn, 'loading');
 		try {
 			const connectivity = await runNetworkCheck();
-			if (connectivity && (connectivity.ipv4Access || connectivity.ipv6Access)) {
+			if (isConnectivitySatisfied(connectivity, authMode)) {
 				setTestButtonState(refreshBtn, 'success');
 			} else {
 				setTestButtonState(refreshBtn, 'error');
@@ -1621,8 +1781,7 @@
 		}
 		
 		// Disable all buttons
-		const buttons = [loginBtn, susheLoginBtn, wlgnLoginBtn, lgn6LoginBtn, lgnLogin46Btn, lgn6Login46Btn];
-		buttons.forEach(btn => btn.disabled = true);
+		setLoginControlsDisabled(true);
 		isLoginInProgress = true;
 		if (activeButton) setTestButtonState(activeButton, 'loading');
 		addLog(`Executing ${loginType}...`);
@@ -1631,7 +1790,7 @@
 			await ipcRenderer.invoke(loginType, {username, password});
 			await sleep(5000); // 等待5s网络登录
 			const result = await runNetworkCheck();
-			if (result.ipv4Access && result.ipv6Access) {
+			if (isConnectivitySatisfied(result, authMode)) {
 				addLog(`${loginType} 认证成功!`, 'info');
 				if (activeButton) setTestButtonState(activeButton, 'success');
 			} else {
@@ -1642,8 +1801,8 @@
 			addLog(`${loginType} 认证失败：` + error.message, 'error');
 			if (activeButton) setTestButtonState(activeButton, 'error');
 		} finally {
-			buttons.forEach(btn => btn.disabled = false);
 			isLoginInProgress = false;
+			setLoginControlsDisabled();
 			if (activeButton) {
 				setTimeout(() => setTestButtonState(activeButton, 'idle'), 1200);
 			}
@@ -1672,10 +1831,11 @@
 	});
 	
 	// --- Log ---
-	logLevelSelect.addEventListener('change', async (e) => {
-		currentLogLevel = e.target.value;
-		await ipcRenderer.invoke('set-setting', {key: 'logLevel', value: currentLogLevel});
-		addLog(`日志等级已改为: ${currentLogLevel.toUpperCase()}`, 'info');
+	logLevelControl.addEventListener('change', async (event) => {
+		const level = event.target.value;
+		currentLogLevel = level;
+		await ipcRenderer.invoke('set-setting', {key: 'logLevel', value: level});
+		addLog(`日志等级已改为: ${level.toUpperCase()}`, 'info');
 	});
   
   function clearLogs() {
@@ -1686,9 +1846,10 @@
 	// Load saved log level
 	(async () => {
 		const savedLogLevel = await ipcRenderer.invoke('get-setting', 'logLevel');
-		if (savedLogLevel) {
-			currentLogLevel = savedLogLevel;
-			logLevelSelect.value = savedLogLevel;
+		const savedOption = Array.from(logLevelControl.querySelectorAll('input')).find(input => input.value === savedLogLevel);
+		if (savedOption) {
+			savedOption.checked = true;
+			currentLogLevel = savedOption.value;
 		}
 		addLog(`当前日志等级：` + currentLogLevel, 'info');
 	})();
@@ -1701,6 +1862,7 @@
 		} else {
 			isDark = theme === 'dark';
 		}
+		configureIpv4Ipv6ConnectionTestOverlay.dataset.appleScheme = isDark ? 'dark' : 'light';
 		
 		document.documentElement.style.setProperty('--bg', isDark ? '#0f172a' : '#f6f7fb');
 		document.documentElement.style.setProperty('--surface', isDark ? '#0b1220' : '#fff');

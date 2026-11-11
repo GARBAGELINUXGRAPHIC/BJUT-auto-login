@@ -1,9 +1,10 @@
 {
   "name": "bjut-auto-login",
-  "version": "2.0.10",
+  "version": "2.1.0",
   "description": "BJUT 校园网自动认证 (Electron)",
   "main": "main.js",
   "scripts": {
+    "test": "node --test scripts/*.test.js",
     "start": "electron .",
     "build": "npm run build:mac && npm run build:win && npm run build:linux",
     "build:mac": "electron-builder --mac --x64 --arm64 --publish never",
